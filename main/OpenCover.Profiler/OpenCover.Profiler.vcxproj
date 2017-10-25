@@ -119,6 +119,7 @@
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName)$(PlatformArchitecture).pch</PrecompiledHeaderOutputFile>
       <EnablePREfast>true</EnablePREfast>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -158,6 +159,7 @@
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName)$(PlatformArchitecture).pch</PrecompiledHeaderOutputFile>
       <EnablePREfast>true</EnablePREfast>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -194,6 +196,7 @@
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName)$(PlatformArchitecture).pch</PrecompiledHeaderOutputFile>
       <EnablePREfast>true</EnablePREfast>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -235,6 +238,7 @@
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName)$(PlatformArchitecture).pch</PrecompiledHeaderOutputFile>
       <EnablePREfast>true</EnablePREfast>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
