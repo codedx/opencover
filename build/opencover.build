@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <project name="OpenCover" >
- 
+
   <property name="configuration" value="debug" unless="${property::exists('configuration')}" />
   <property name="platform" value="x86" unless="${property::exists('platform')}" />
   <property name="nunit.path" value="${solution.folder}/packages/NUnit.ConsoleRunner.3.5.0/tools"/>
@@ -17,13 +17,14 @@
 
   <property name="msbuild.exe" value="${program.files.x86}/Microsoft Visual Studio/2017/Community/MSBuild/15.0/Bin/MSBuild.exe" if="${directory::exists(program.files.x86 + '/Microsoft Visual Studio/2017/Community/MSBuild/15.0/Bin')}" />
   <property name="msbuild.exe" value="${program.files.x86}/Microsoft Visual Studio/2017/Professional/MSBuild/15.0/Bin/MSBuild.exe" if="${directory::exists(program.files.x86 + '/Microsoft Visual Studio/2017/Professional/MSBuild/15.0/Bin')}" unless="${property::exists('msbuild.exe')}" />
+  <property name="msbuild.exe" value="${program.files.x86}/Microsoft Visual Studio/2017/Enterprise/MSBuild/15.0/Bin/MSBuild.exe" if="${directory::exists(program.files.x86 + '/Microsoft Visual Studio/2017/Enterprise/MSBuild/15.0/Bin')}" unless="${property::exists('msbuild.exe')}" />
   <property name="msbuild.exe" value="${netfx4.folder}/MSBuild.exe" unless="${property::exists('msbuild.exe')}"/>
 
   <property name="dotnet.exe" value="c:\dotnet\dotnet.exe" if="${directory::exists('c:\dotnet')}" />
   <property name="dotnet.exe" value="dotnet.exe" unless="${property::exists('dotnet.exe')}"/>
 
   <property name="nunit-console" value="${nunit.path}/nunit3-console.exe" />
-  
+
   <choose>
     <when test="${appveyor=='True'}">
       <property name="nunit-console" value="nunit3-console.exe" />
@@ -34,7 +35,7 @@
       <property name="nunit-appveyor" value="" />
     </otherwise>
   </choose>
-  
+
   <target name="clean" description="Delete all previously compiled binaries.">
     <delete>
       <fileset>
@@ -51,7 +52,7 @@
       </fileset>
     </delete>
   </target>
-    
+
   <target name="clean-all" description="Delete all other files" depends="clean">
     <delete>
       <fileset>
@@ -60,7 +61,7 @@
       </fileset>
     </delete>
   </target>
-    
+
   <target name="build" description="Build all targets.">
     <property name="configuration" value="debug" />
     <property name="platform" value="x64" />
@@ -88,7 +89,7 @@
     <property name="platform" value="x64" />
     <call target="build.opencover" />
   </target>
-  
+
   <target name="build-debug-platforms" description="Build all debug platform flavours">
     <property name="configuration" value="debug" />
     <property name="platform" value="x64" />
@@ -110,7 +111,7 @@
       <arg value="${solution.folder}" />
     </exec>
   </target>
-    
+
   <target name="build.opencover" depends="nuget.restore.solution, dotnet.restore.solution">
 
     <exec program="${msbuild.exe}">
@@ -118,14 +119,14 @@
       <arg value="/t:Clean,Rebuild" />
       <arg value="/p:Configuration=${configuration},Platform=${platform}" />
     </exec>
-      
+
     <property name="expected.output" value="${solution.folder}/bin/${configuration}/OpenCover.Console.exe"/>
     <fail unless="${file::exists(expected.output)}">Output file doesn't exist in ${expected.output}</fail>
-    
+
   </target>
 
   <target name="test" description="Run unit tests">
-                
+
     <echo message="test: ${solution.folder}/bin/${configuration}/OpenCover.Test.dll" />
 
     <exec program="${nunit-console}">
@@ -134,23 +135,23 @@
       <arg value="${exclude-admin-only}" />
       <arg value="--result=${solution.folder}/bin/${configuration}/TestResult.xml${nunit-appveyor}" />
     </exec>
-        
+
   </target>
 
   <target name="test-bdd" description="Run BDD tests" >
 
     <echo message="test-bdd: ${solution.folder}/OpenCover.Specs/bin/${configuration}/OpenCover.Specs.dll" />
-        
+
     <exec program="${nunit-console}">
       <arg value="${solution.folder}/OpenCover.Specs/bin/${configuration}/OpenCover.Specs.dll" />
       <arg value="${exclude-admin-only}" />
       <arg value="--result=${solution.folder}/bin/${configuration}/TestResult.xml${nunit-appveyor}" />
     </exec>
-        
+
   </target>
-    
+
   <target name="test-cpp" depends="test-cpp-internal" />
-    
+
   <target name="test-cpp-internal" description="Run C++ tests" >
     <exec program="${open-cover-test-console32}" if="${file::exists(open-cover-test-console32)}" />
     <exec program="${open-cover-test-console64}" if="${file::exists(open-cover-test-console64)}" />
@@ -169,44 +170,44 @@
 
   <target name="register" description="Register the profiler assembly (per-user)" >
     <echo message="register: ${solution.folder}/bin/${configuration}/${platform}/OpenCover.Profiler.dll" />
-    <exec program="regsvr32" >  
+    <exec program="regsvr32" >
       <arg value="/n" />
       <arg value="/i:user" />
       <arg value="/s" />
       <arg value="${solution.folder}/bin/${configuration}/${platform}/OpenCover.Profiler.dll" />
     </exec>
   </target>
-    
+
   <target name="dogfood">
 
-    <exec program="${solution.folder}/bin/${configuration}/dogfood.cmd" 
+    <exec program="${solution.folder}/bin/${configuration}/dogfood.cmd"
       workingdir="${solution.folder}/bin/${configuration}"/>
 
     <exec program="${solution.folder}/bin/${configuration}/uitest.opencover.cmd"
       workingdir="${solution.folder}/bin/${configuration}"/>
 
-    <exec program="${coveralls.exe}" workingdir="${solution.folder}/bin/${configuration}">      
+    <exec program="${coveralls.exe}" workingdir="${solution.folder}/bin/${configuration}">
       <arg value="--opencover" />
       <arg value="opencovertests.xml" />
     </exec>
-        
+
   </target>
 
   <target name="dogfood-release">
 
     <property name="configuration" value="release" />
-    
+
     <exec program="${solution.folder}/bin/${configuration}/dogfood_exattr.cmd"
       workingdir="${solution.folder}/bin/${configuration}"/>
 
     <exec program="${solution.folder}/bin/${configuration}/uitest.opencover.cmd"
       workingdir="${solution.folder}/bin/${configuration}"/>
 
-    <exec program="${coveralls.exe}" workingdir="${solution.folder}/bin/${configuration}">      
+    <exec program="${coveralls.exe}" workingdir="${solution.folder}/bin/${configuration}">
       <arg value="--opencover" />
       <arg value="opencovertests.xml" />
     </exec>
-        
+
   </target>
-    
+
 </project>
