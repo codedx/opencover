@@ -63,6 +63,9 @@ namespace OpenCover.Specs.Steps
             var dotnetexe = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"dotnet\dotnet.exe");
             var targetApp = (string)ScenarioContext.Current["TargetApp"];
             var targetFolder = (string)ScenarioContext.Current["TargetFolder"];
+
+            VerifyProfilerPath(targetFolder);
+
             var outputXml = Path.Combine(Path.GetDirectoryName(targetApp) ?? ".", "results.xml");
             if (File.Exists(outputXml))
                 File.Delete(outputXml);
@@ -108,13 +111,30 @@ namespace OpenCover.Specs.Steps
 
         private string GetRelativeOutputFolder()
         {
-            var configSuffixMatch = Regex.Match(AppDomain.CurrentDomain.BaseDirectory, @"(?i)\\(?<configSuffix>bin\\(debug|release))$");
+            var currentDomainBaseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+            var configSuffixMatch = Regex.Match(currentDomainBaseDirectory, @"(?i)\\(?<configSuffix>bin\\(debug|release))\\*$");
             if (!configSuffixMatch.Success)
             {
-                throw new InvalidOperationException(@"Expected to find path ending with \bin\debug|release.");
+                throw new InvalidOperationException($@"Expected to find path ending with \bin\debug|release in '{currentDomainBaseDirectory}'");
             }
 
             return configSuffixMatch.Groups["configSuffix"].Value;
+        }
+
+        private static void VerifyProfilerPath(string parentFolder)
+        {
+            VerifyProfilerPath(parentFolder, true);
+            VerifyProfilerPath(parentFolder, false);
+        }
+
+        private static void VerifyProfilerPath(string parentFolder, bool is32Bit)
+        {
+            var profilerPath = Path.Combine(parentFolder, is32Bit ? "x86" : "x64", "OpenCover.Profiler.dll");
+            if (!File.Exists(profilerPath))
+            {
+                Assert.Inconclusive($"Cannot run OpenCover. Registration requires a profiler DLL at {profilerPath}.");
+            }
         }
     }
 }
