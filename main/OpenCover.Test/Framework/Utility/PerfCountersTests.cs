@@ -21,6 +21,11 @@ namespace OpenCover.Test.Framework.Utility
         [SetUp]
         public void Setup()
         {
+            if (!IdentityHelper.IsRunningAsWindowsAdmin())
+            {
+                Assert.Inconclusive("Skipping PerfCountersTests because administrator privileges are missing.");
+            }
+
             _counters = new PerfCounters();
             Assert.IsTrue(PerformanceCounterCategory.CounterExists(MemoryQueue, CategoryName));
             Assert.IsTrue(PerformanceCounterCategory.CounterExists(QueueThroughput, CategoryName));

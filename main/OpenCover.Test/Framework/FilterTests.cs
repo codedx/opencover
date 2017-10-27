@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Mono.Cecil;
 using Mono.Collections.Generic;
@@ -573,8 +574,8 @@ namespace OpenCover.Test.Framework
         public void Can_Identify_Excluded_FSharp_Methods()
         {
             var location = System.IO.Path.Combine(
-                System.IO.Path.GetDirectoryName(this.GetType().Assembly.Location),
-                @"Samples\Library1.dll");
+                AppDomain.CurrentDomain.BaseDirectory,
+                @"..\..\OpenCover.Test\Samples\Library1.dll");
             var sourceAssembly = AssemblyDefinition.ReadAssembly(location);
 
             var direct = sourceAssembly.MainModule.Types.ToList();

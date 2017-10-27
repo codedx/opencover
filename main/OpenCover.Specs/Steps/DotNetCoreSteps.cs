@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using TechTalk.SpecFlow;
 
@@ -13,24 +14,22 @@ namespace OpenCover.Specs.Steps
         [Given(@"I can find the OpenCover application")]
         public void GivenICanFindTheOpenCoverApplication()
         {
-#if DEBUG
-            var targetFolder = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(DotNetCoreSteps).Assembly.Location) ?? ".", @"..\..\..\bin\Debug"));
-#else
-            var targetFolder = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(DotNetCoreSteps).Assembly.Location) ?? ".", @"..\..\..\bin\Release"));
-#endif
-            Assert.IsTrue(File.Exists(Path.Combine(targetFolder, "OpenCover.Console.exe")));
+            var solutionOutputFolder = GetSolutionOutputFolder();
 
-            ScenarioContext.Current["TargetFolder"] = targetFolder;
+            Assert.IsTrue(File.Exists(Path.Combine(solutionOutputFolder, "OpenCover.Console.exe")));
+
+            ScenarioContext.Current["TargetFolder"] = solutionOutputFolder;
         }
 
         [Given(@"I can find the target \.net core application '(.*)'")]
         public void GivenICanFindTheTarget_NetCoreApplication(string application)
         {
-#if DEBUG
-            var targetPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(DotNetCoreSteps).Assembly.Location) ?? ".", $@"..\..\..\{application}\bin\Debug\netcoreapp1.1"));
-#else
-            var targetPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(DotNetCoreSteps).Assembly.Location) ?? ".", $@"..\..\..\{application}\bin\Release\netcoreapp1.1"));
-#endif
+            var targetPath = GetProjectOutputFolder(application);
+            if (targetPath == null)
+            {
+                Assert.Fail($"Expected to find base directory for application name: {application}");
+            }
+
             var targetApp = Directory.EnumerateFiles(targetPath, $"{application}.dll", SearchOption.AllDirectories).FirstOrDefault();
 
             Console.WriteLine($"Found target application in '{targetApp}'");
@@ -43,11 +42,12 @@ namespace OpenCover.Specs.Steps
         [Given(@"I can find the target \.net core portable application '(.*)'")]
         public void GivenICanFindTheTarget_NetCorePortableApplication(string application)
         {
-#if DEBUG
-            var targetPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(DotNetCoreSteps).Assembly.Location) ?? ".", $@"..\..\..\{application}\bin\Debug\netcoreapp1.1"));
-#else
-            var targetPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(DotNetCoreSteps).Assembly.Location) ?? ".", $@"..\..\..\{application}\bin\Release\netcoreapp1.1"));
-#endif
+            var targetPath = GetProjectOutputFolder(application);
+            if (targetPath == null)
+            {
+                Assert.Fail($"Expected to find base directory for application name: {application}");
+            }
+
             var targetApp = Directory.EnumerateFiles(targetPath, $"{application}.dll", SearchOption.AllDirectories).FirstOrDefault();
 
             Console.WriteLine($"Found target application in '{targetApp}'");
@@ -94,6 +94,27 @@ namespace OpenCover.Specs.Steps
             var xml = File.ReadAllText((string) ScenarioContext.Current["OutputXml"]);
             var coverage = Utils.GetTotalCoverage(xml) ?? "-1";
             Assert.GreaterOrEqual(decimal.Parse(coverage), coveragePercentage);
+        }
+
+        private string GetSolutionOutputFolder()
+        {
+            return $@"{AppDomain.CurrentDomain.BaseDirectory}\..\..\..\{GetRelativeOutputFolder()}";
+        }
+
+        private string GetProjectOutputFolder(string applicationName)
+        {
+            return $@"{AppDomain.CurrentDomain.BaseDirectory}\..\..\..\{applicationName}\{GetRelativeOutputFolder()}\netcoreapp1.1";
+        }
+
+        private string GetRelativeOutputFolder()
+        {
+            var configSuffixMatch = Regex.Match(AppDomain.CurrentDomain.BaseDirectory, @"(?i)\\(?<configSuffix>bin\\(debug|release))$");
+            if (!configSuffixMatch.Success)
+            {
+                throw new InvalidOperationException(@"Expected to find path ending with \bin\debug|release.");
+            }
+
+            return configSuffixMatch.Groups["configSuffix"].Value;
         }
     }
 }

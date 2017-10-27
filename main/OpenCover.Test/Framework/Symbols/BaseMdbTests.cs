@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.IO;
 using NUnit.Framework;
@@ -18,10 +19,13 @@ namespace OpenCover.Test.Framework.Symbols
             Directory.CreateDirectory(folder);
             var dest = Path.Combine(folder, "Microsoft.Practices.ServiceLocation.dll");
             File.Copy(source, dest);
-            File.Copy(Path.ChangeExtension(source, "pdb"), Path.ChangeExtension(dest, "pdb"));
+
+            var currentDomainBaseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            File.Copy(Path.Combine(currentDomainBaseDirectory, "Microsoft.Practices.ServiceLocation.pdb"), Path.ChangeExtension(dest, "pdb"));
+
             var process = new ProcessStartInfo
             {
-                FileName = Path.Combine(assemblyPath, @"..\..\packages\Mono.pdb2mdb.0.1.0.20130128\tools\pdb2mdb.exe"),
+                FileName = Path.Combine(currentDomainBaseDirectory, @"..\..\packages\Mono.pdb2mdb.0.1.0.20130128\tools\pdb2mdb.exe"),
                 Arguments = dest,
                 WorkingDirectory = folder,
                 CreateNoWindow = true,

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ namespace OpenCover.Test.Framework.Symbols
         public void CanFindAndLoadProviderForPdbFile()
         {
             var commandLine = new Mock<ICommandLine>();
-            var assemblyPath = typeof(Microsoft.Practices.ServiceLocation.ServiceLocator).Assembly.Location;
+            var assemblyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Microsoft.Practices.ServiceLocation.dll");
 
             var symbolFile = SymbolFileHelper.FindSymbolFolder(assemblyPath, commandLine.Object);
 
