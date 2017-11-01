@@ -639,7 +639,7 @@ namespace OpenCover.Framework.Persistance
                     // keep transformations in this order!
                     TransformSequences_Initialize (methods);
                     TransformSequences_JoinWithBranches (methods);
-                    TransformSequences_AddSources (module.Files, methods, sourceRepository);
+                    TransformSequences_AddSources (module.Files, methods, sourceRepository, _logger);
                     TransformSequences_RemoveCompilerGeneratedBranches  (methods, sourceRepository, module.ModuleTime);
                     TransformSequences_RemoveFalsePositiveUnvisited (methods, sourceRepository, module.ModuleTime);
                     TransformSequences_ReduceBranches (methods); // last
@@ -685,7 +685,7 @@ namespace OpenCover.Framework.Persistance
             }
         }
 
-        private static void TransformSequences_AddSources (IEnumerable<File> files, IEnumerable<Method> methods, IDictionary<uint, CodeCoverageStringTextSource> sourceRepository)
+        private static void TransformSequences_AddSources (IEnumerable<File> files, IEnumerable<Method> methods, IDictionary<uint, CodeCoverageStringTextSource> sourceRepository, ILog logger)
         {
             if (files == null || !files.Any()) 
                 return;
@@ -697,7 +697,7 @@ namespace OpenCover.Framework.Persistance
                 Where (file => !String.IsNullOrWhiteSpace(file.FullPath)
                             && !filesDictionary.ContainsKey(file.FullPath)))
             {
-                var source = CodeCoverageStringTextSource.GetSource(file.FullPath); // never reurns null
+                var source = CodeCoverageStringTextSource.GetSource(file.FullPath, logger); // never reurns null
                 if (source.FileType == FileType.CSharp) 
                     sourceRepository.Add (file.UniqueId, source);
                 filesDictionary.Add(file.FullPath, file.UniqueId);

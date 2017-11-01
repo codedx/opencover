@@ -8,6 +8,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using log4net;
+using Moq;
 using NUnit.Framework;
 using OpenCover.Framework.Model;
 using OpenCover.Framework.Utility;
@@ -31,7 +33,8 @@ namespace OpenCover.Test.Framework.Utility
         public void CreateAddRemoveKeyAndValue()
         {
             var sRepo = new SourceRepository();
-            var source = new CodeCoverageStringTextSource("", "");
+            var mockLog = new Mock<ILog>();
+            var source = new CodeCoverageStringTextSource("", "", mockLog.Object);
             const uint fileId = 1;
             sRepo.Add (fileId, source);
             Assert.True (sRepo.Count == 1);
@@ -49,7 +52,8 @@ namespace OpenCover.Test.Framework.Utility
             var sRepo = new SourceRepository();
             Assert.True (sRepo.Count == 0);
 
-            var source = new CodeCoverageStringTextSource("", "");
+            var mockLog = new Mock<ILog>();
+            var source = new CodeCoverageStringTextSource("", "", mockLog.Object);
             const uint fileId = 1;
 
             Assert.That ( delegate { sRepo[fileId] = source; }, Throws.Nothing );
@@ -67,7 +71,8 @@ namespace OpenCover.Test.Framework.Utility
             var sRepo = new SourceRepository();
             Assert.True (sRepo.Count == 0);
 
-            var source = new CodeCoverageStringTextSource("", "");
+            var mockLog = new Mock<ILog>();
+            var source = new CodeCoverageStringTextSource("", "", mockLog.Object);
             const uint fileId = 1;
 
             sRepo.Add (new KeyValuePair<uint,CodeCoverageStringTextSource>(fileId, source));
@@ -86,7 +91,8 @@ namespace OpenCover.Test.Framework.Utility
             var sRepo = new SourceRepository();
             Assert.True (sRepo.Count == 0);
 
-            var source = new CodeCoverageStringTextSource("", "");
+            var mockLog = new Mock<ILog>();
+            var source = new CodeCoverageStringTextSource("", "", mockLog.Object);
             const uint fileId = 1;
 
             sRepo.Add (fileId, source);
@@ -104,14 +110,15 @@ namespace OpenCover.Test.Framework.Utility
             Assert.True (sRepo.IsReadOnly == false);
             Assert.True (sRepo.Count == 0);
 
-            var source1 = new CodeCoverageStringTextSource("abc", "");
+            var mockLog = new Mock<ILog>();
+            var source1 = new CodeCoverageStringTextSource("abc", "", mockLog.Object);
             const uint fileId1 = 1;
             sRepo.Add (fileId1, source1);
             Assert.True (sRepo.Count == 1);
             Assert.True (sRepo.Keys.Count == 1);
             Assert.True (sRepo.Values.Count == 1);
 
-            var source2 = new CodeCoverageStringTextSource("def", "");
+            var source2 = new CodeCoverageStringTextSource("def", "", mockLog.Object);
             const uint fileId2 = 2;
             sRepo.Add (fileId2, source2);
             Assert.True (sRepo.Count == 2);
@@ -150,7 +157,9 @@ namespace OpenCover.Test.Framework.Utility
         {
             const uint fileId1 = 1;
             const string sourceString = "abc { def }";
-            var source = new CodeCoverageStringTextSource(sourceString, "");
+
+            var mockLog = new Mock<ILog>();
+            var source = new CodeCoverageStringTextSource(sourceString, "", mockLog.Object);
 
             var sRepo = new SourceRepository();
             sRepo[fileId1] = source;

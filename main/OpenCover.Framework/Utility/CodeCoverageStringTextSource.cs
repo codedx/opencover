@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using log4net;
 using OpenCover.Framework.Model;
 
 namespace OpenCover.Framework.Utility
@@ -66,8 +67,10 @@ namespace OpenCover.Framework.Utility
         /// </summary>
         /// <param name="source"></param>
         /// <param name="filePath"></param>
-        public CodeCoverageStringTextSource(string source, string filePath)
+        /// <param name="logger"></param>
+        public CodeCoverageStringTextSource(string source, string filePath, ILog logger)
         {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _fileFound = source != null;
 
             if (!string.IsNullOrWhiteSpace (filePath)) {
@@ -116,6 +119,7 @@ namespace OpenCover.Framework.Utility
 
         private bool cr;
         private bool lf;
+        private ILog _logger;
 
         private bool NextChar(ushort ch)
         {
@@ -255,19 +259,26 @@ namespace OpenCover.Framework.Utility
         /// Get line-parsed source from file name
         /// </summary>
         /// <param name="filePath"></param>
+        /// <param name="logger"></param>
         /// <returns></returns>
-        public static CodeCoverageStringTextSource GetSource(string filePath) {
+        public static CodeCoverageStringTextSource GetSource(string filePath, ILog logger) {
 
-            var retSource = new CodeCoverageStringTextSource (null, filePath); // null indicates source-file not found
+            var retSource = new CodeCoverageStringTextSource (null, filePath, logger); // null indicates source-file not found
+            if (!System.IO.File.Exists(filePath))
+            {
+                logger.InfoFormat($"Source file does not exist: {filePath}");
+                return retSource;
+            }
+
             try {
                 using (Stream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 using (var reader = new StreamReader (stream, Encoding.Default, true)) {
                     stream.Position = 0;
-                    retSource = new CodeCoverageStringTextSource(reader.ReadToEnd(), filePath);
+                    retSource = new CodeCoverageStringTextSource(reader.ReadToEnd(), filePath, logger);
                 }
             } catch (Exception e) { 
                 // Source is optional (for excess-branch removal), application can continue without it
-                e.InformUser(); // Do not throw ExitApplicationWithoutReportingException
+                logger.InfoFormat($"An {e.GetType()} occured: {e.Message}");
             }
             return retSource;
         }
