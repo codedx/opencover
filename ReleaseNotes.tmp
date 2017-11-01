@@ -1,4 +1,8 @@
 Version [[version]]
+
+loads symbols when assembly and PDB files are not co-located, useful for .NET apps running under IIS
+CodeCoverageStringTextSource does not attempt to read missing files
+
 #595 added .net core support (feature)
 #550 ensure the host and profiler are matched by version number (feature)
 #579 remove false positive reporting on filter (fix)
