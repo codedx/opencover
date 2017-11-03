@@ -65,6 +65,11 @@ namespace OpenCover.Framework.Communication
         IT_VisitPoint = 0x00000000,
 
         /// <summary>
+        /// a special coverage visit point to indicate the conclusion of a specific context
+        /// </summary>
+        IT_VisitPointContextEnd = 0x3FFFFFFF,
+
+        /// <summary>
         /// A test method enter
         /// </summary>
         IT_MethodEnter = 0x40000000,

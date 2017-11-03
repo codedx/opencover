@@ -23,6 +23,7 @@ namespace OpenCover.Framework.Persistance
         private readonly ILog _logger;
         private uint _trackedMethodId;
         private readonly Dictionary<Module, Dictionary<int, KeyValuePair<Class, Method>>> _moduleMethodMap = new Dictionary<Module, Dictionary<int, KeyValuePair<Class, Method>>>();
+        private readonly Dictionary<Guid, HashSet<uint>> _contextSpidMap = new Dictionary<Guid, HashSet<uint>>();
 
         private static readonly ILog DebugLogger = LogManager.GetLogger("DebugLogger");
 
@@ -581,11 +582,39 @@ namespace OpenCover.Framework.Persistance
                 var spid = BitConverter.ToUInt32(data, idx);
                 if (spid < (uint)MSG_IdType.IT_MethodEnter)
                 {
-                    if (!InstrumentationPoint.AddVisitCount(spid, _trackedMethodId, 1))
+                    idx += 4; // advance past int spid
+
+                    var requestHigh = BitConverter.ToUInt64(data, idx);
+                    idx += 8; // advance past GUID part
+                    i += 2; // record 2 bytes read
+                    
+                    var requestLow = BitConverter.ToUInt64(data, idx);
+                    idx += 4; // advance past 1/2 GUID part, other half moved with loop iteration
+                    i += 2; // record 2 bytes read
+
+                    var requestGuid = MakeGuid(requestHigh, requestLow);
+                    if (spid == (uint) MSG_IdType.IT_VisitPointContextEnd)
+                    {
+                        if (_contextSpidMap.TryGetValue(requestGuid, out HashSet<uint> relatedSpids))
+                        {
+                            _contextSpidMap.Remove(requestGuid);
+                        }
+                        _logger.InfoFormat($"Context {requestGuid} has ended.");
+                        continue;
+                    }
+
+                    if (!InstrumentationPoint.AddVisitCount(spid, requestGuid, _trackedMethodId, 1))
                     {
                         _logger.ErrorFormat("Failed to add a visit to {0} with tracking method {1}. Max point count is {2}",
                             spid, _trackedMethodId, InstrumentationPoint.Count);
                     }
+
+                    if (!_contextSpidMap.TryGetValue(requestGuid, out HashSet<uint> spids))
+                    {
+                        spids = new HashSet<uint>();
+                        _contextSpidMap[requestGuid] = spids;
+                    }
+                    spids.Add(spid);
                 }
                 else
                 {
@@ -593,6 +622,23 @@ namespace OpenCover.Framework.Persistance
                     _trackedMethodId = (spid & (uint)MSG_IdType.IT_MethodEnter) != 0 ? tmId : 0;
                 }
             }
+        }
+
+        /// <summary>
+        /// Creates the GUID represented by the upper and lower portions of the underlying byte array.
+        /// </summary>
+        /// <param name="high">Represents the upper bytes of the context identifier GUID</param>
+        /// <param name="low">Represents the lower bytes of the context identifier GUID</param>
+        /// <returns>GUID whose underlying bytes are represented by high and low.</returns>
+        public static Guid MakeGuid(ulong high, ulong low)
+        {
+            byte[] guidBytes = new byte[16];
+            var lowBytes = BitConverter.GetBytes(low);
+            var highBytes = BitConverter.GetBytes(high);
+            Array.Copy(lowBytes, guidBytes, lowBytes.Length);
+            Array.Copy(highBytes, 0, guidBytes, 8, highBytes.Length);
+
+            return new Guid(guidBytes);
         }
 
         /// <summary>

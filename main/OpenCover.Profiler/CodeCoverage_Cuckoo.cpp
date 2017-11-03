@@ -5,12 +5,22 @@
 #define CUCKOO_CRITICAL_METHOD_NAME L"VisitedCritical"
 #define CUCKOO_NEST_TYPE_NAME L"System.CannotUnloadAppDomainException"
 
-static COR_SIGNATURE visitedMethodCallSignature[] =
+static COR_SIGNATURE visitedMethodSafeCallSignature[] =
 {
 	IMAGE_CEE_CS_CALLCONV_DEFAULT,
 	0x01,
 	ELEMENT_TYPE_VOID,
 	ELEMENT_TYPE_I4
+};
+
+static COR_SIGNATURE visitedMethodCriticalCallSignature[] =
+{
+	IMAGE_CEE_CS_CALLCONV_DEFAULT,
+	0x03,
+	ELEMENT_TYPE_VOID,
+	ELEMENT_TYPE_I4,
+	ELEMENT_TYPE_U8,
+	ELEMENT_TYPE_U8
 };
 
 static COR_SIGNATURE ctorCallSignature[] =
@@ -60,7 +70,7 @@ HRESULT CCodeCoverage::RegisterCuckoos(ModuleID moduleId){
 
 		// create a method that we will mark up with the SecurityCriticalAttribute
 		COM_FAIL_MSG_RETURN_ERROR(metaDataEmit->DefineMethod(nestToken, CUCKOO_CRITICAL_METHOD_NAME,
-			mdPublic | mdStatic | mdHideBySig, visitedMethodCallSignature, sizeof(visitedMethodCallSignature),
+			mdPublic | mdStatic | mdHideBySig, visitedMethodCriticalCallSignature, sizeof(visitedMethodCriticalCallSignature),
 			ulCodeRVA, miIL | miManaged | miPreserveSig | miNoInlining, &m_cuckooCriticalToken),
 			_T("    ::ModuleLoadFinished(...) => DefineMethod => 0x%X"));
 
@@ -109,7 +119,7 @@ HRESULT CCodeCoverage::RegisterCuckoos(ModuleID moduleId){
 
 		// create a method that we will mark up with the SecuritySafeCriticalAttribute
 		COM_FAIL_MSG_RETURN_ERROR(metaDataEmit->DefineMethod(nestToken, CUCKOO_SAFE_METHOD_NAME,
-			mdPublic | mdStatic | mdHideBySig, visitedMethodCallSignature, sizeof(visitedMethodCallSignature),
+			mdPublic | mdStatic | mdHideBySig, visitedMethodSafeCallSignature, sizeof(visitedMethodSafeCallSignature),
 			ulCodeRVA, miIL | miManaged | miPreserveSig | miNoInlining, &m_cuckooSafeToken),
 			_T("    ::ModuleLoadFinished(...) => DefineMethod => 0x%X"));
 
@@ -151,7 +161,7 @@ mdMemberRef CCodeCoverage::RegisterSafeCuckooMethod(ModuleID moduleId, const WCH
 
 	mdMemberRef cuckooSafeToken;
 	COM_FAIL_MSG_RETURN_ERROR(metaDataEmit->DefineMemberRef(nestToken, CUCKOO_SAFE_METHOD_NAME,
-		visitedMethodCallSignature, sizeof(visitedMethodCallSignature), &cuckooSafeToken),
+		visitedMethodSafeCallSignature, sizeof(visitedMethodSafeCallSignature), &cuckooSafeToken),
 		_T("    ::RegisterSafeCuckooMethod(...) => DefineMemberRef => 0x%X"));
 
 	return cuckooSafeToken;
@@ -163,21 +173,19 @@ HRESULT CCodeCoverage::AddCriticalCuckooBody(ModuleID moduleId)
 {
 	ATLTRACE(_T("::AddCriticalCuckooBody => Adding VisitedCritical..."));
 
-	mdSignature pvsig = GetMethodSignatureToken_I4(moduleId);
-	void(__fastcall *pt)(ULONG) = GetInstrumentPointVisit();
+	mdSignature pvsig = GetMethodSignatureToken_I4U8U8(moduleId);
+	void(__fastcall *pt)(ULONG, ULONGLONG, ULONGLONG) = GetInstrumentPointVisitWithContext();
 
-	BYTE data[] = { (0x01 << 2) | CorILMethod_TinyFormat, CEE_RET };
-	Instrumentation::Method criticalMethod((IMAGE_COR_ILMETHOD*)data);
 	InstructionList instructions;
 	instructions.push_back(new Instruction(CEE_LDARG_0));
+	instructions.push_back(new Instruction(CEE_LDARG_1));
+	instructions.push_back(new Instruction(CEE_LDARG_2));
 #ifdef _WIN64
 	instructions.push_back(new Instruction(CEE_LDC_I8, (ULONGLONG)pt));
 #else
 	instructions.push_back(new Instruction(CEE_LDC_I4, (ULONG)pt));
 #endif
 	instructions.push_back(new Instruction(CEE_CALLI, pvsig));
-
-	criticalMethod.InsertInstructionsAtOffset(0, instructions);
 
 	InstrumentMethodWith(moduleId, m_cuckooCriticalToken, instructions);
 
@@ -192,13 +200,13 @@ HRESULT CCodeCoverage::AddSafeCuckooBody(ModuleID moduleId)
 {
 	ATLTRACE(_T("::AddSafeCuckooBody => Adding SafeVisited..."));
 
-	BYTE data[] = { (0x01 << 2) | CorILMethod_TinyFormat, CEE_RET };
-	Instrumentation::Method criticalMethod((IMAGE_COR_ILMETHOD*)data);
 	InstructionList instructions;
 	instructions.push_back(new Instruction(CEE_LDARG_0));
+	instructions.push_back(new Instruction(CEE_LDC_I4, 0));
+	instructions.push_back(new Instruction(CEE_CONV_U8));
+	instructions.push_back(new Instruction(CEE_LDC_I4, 0));
+	instructions.push_back(new Instruction(CEE_CONV_U8));
 	instructions.push_back(new Instruction(CEE_CALL, m_cuckooCriticalToken));
-
-	criticalMethod.InsertInstructionsAtOffset(0, instructions);
 
 	InstrumentMethodWith(moduleId, m_cuckooSafeToken, instructions);
 

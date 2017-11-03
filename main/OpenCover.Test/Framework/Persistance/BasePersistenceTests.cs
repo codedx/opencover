@@ -1011,9 +1011,13 @@ namespace OpenCover.Test.Framework.Persistance
 
             var points = new[]
             {pt1.UniqueSequencePoint, pt2.UniqueSequencePoint, pt2.UniqueSequencePoint, pt2.UniqueSequencePoint};
-            data.AddRange(BitConverter.GetBytes((UInt32) points.Count()));
+            data.AddRange(BitConverter.GetBytes((UInt32) points.Count() * 5));
             foreach (uint point in points)
+            {
                 data.AddRange(BitConverter.GetBytes(point));
+                data.AddRange(BitConverter.GetBytes(3ul));
+                data.AddRange(BitConverter.GetBytes(4ul));
+            }
 
             // act
             Instance.SaveVisitData(data.ToArray());
@@ -1056,9 +1060,9 @@ namespace OpenCover.Test.Framework.Persistance
             var data = new List<byte>();
             var points = new[]
             {
-                1 | (uint) MSG_IdType.IT_MethodEnter, pt1.UniqueSequencePoint, pt2.UniqueSequencePoint,
+                1 | (uint) MSG_IdType.IT_MethodEnter, pt1.UniqueSequencePoint, 0u, 0u, 0u, 0u, pt2.UniqueSequencePoint, 0u, 0u, 0u, 0u,
                 1 | (uint) MSG_IdType.IT_MethodLeave,
-                2 | (uint) MSG_IdType.IT_MethodEnter, pt2.UniqueSequencePoint, pt2.UniqueSequencePoint,
+                2 | (uint) MSG_IdType.IT_MethodEnter, pt2.UniqueSequencePoint, 0u, 0u, 0u, 0u, pt2.UniqueSequencePoint, 0u, 0u, 0u, 0u,
                 2 | (uint) MSG_IdType.IT_MethodLeave
             };
             data.AddRange(BitConverter.GetBytes((UInt32) points.Count()));
@@ -1083,8 +1087,10 @@ namespace OpenCover.Test.Framework.Persistance
         {
             // arrange
             var data = new List<byte>();
-            data.AddRange(BitConverter.GetBytes((UInt32) 1));
+            data.AddRange(BitConverter.GetBytes((UInt32) 5));
             data.AddRange(BitConverter.GetBytes((UInt32) 1000000));
+            data.AddRange(BitConverter.GetBytes(0ul));
+            data.AddRange(BitConverter.GetBytes(0ul));
 
             // act
             Instance.SaveVisitData(data.ToArray());
@@ -1099,8 +1105,10 @@ namespace OpenCover.Test.Framework.Persistance
         {
             // arrange
             var data = new List<byte>();
-            data.AddRange(BitConverter.GetBytes((UInt32) 1));
+            data.AddRange(BitConverter.GetBytes((UInt32) 5));
             data.AddRange(BitConverter.GetBytes((UInt32) 0));
+            data.AddRange(BitConverter.GetBytes(0ul));
+            data.AddRange(BitConverter.GetBytes(0ul));
 
             // act
             Instance.SaveVisitData(data.ToArray());
@@ -1279,6 +1287,175 @@ namespace OpenCover.Test.Framework.Persistance
 
             // assert
             Assert.AreEqual(int.MaxValue, methodnPathOverflow.NPathComplexity);
+        }
+
+        [Test]
+        public void SaveVisitPoints_Counts_Visits_By_Context()
+        {
+            // arrange
+            var pt1 = new SequencePoint();
+            var pt2 = new SequencePoint();
+
+
+            var points = new[]
+                {pt1.UniqueSequencePoint, pt2.UniqueSequencePoint, pt2.UniqueSequencePoint, pt2.UniqueSequencePoint};
+
+            var contextIdOne = Guid.NewGuid();
+            var contextIdTwo = Guid.NewGuid();
+            var pointsContext = new[]
+            {
+                GetContextIdPart(contextIdOne, true), GetContextIdPart(contextIdOne, false),
+                GetContextIdPart(contextIdOne, true), GetContextIdPart(contextIdOne, false),
+                GetContextIdPart(contextIdOne, true), GetContextIdPart(contextIdOne, false),
+                GetContextIdPart(contextIdTwo, true), GetContextIdPart(contextIdTwo, false)
+            };
+
+            var data = new List<byte>();
+            data.AddRange(BitConverter.GetBytes((UInt32)points.Count() * 5));
+            for (var index = 0; index < points.Length; index++)
+            {
+                uint point = points[index];
+                var pointIdIndex = index * 2;
+                data.AddRange(BitConverter.GetBytes(point));
+                data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex]));
+                data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex + 1]));
+            }
+
+            // act
+            Instance.SaveVisitData(data.ToArray());
+
+            // assert
+            Assert.AreEqual(1, InstrumentationPoint.GetVisitCount(pt1.UniqueSequencePoint));
+            Assert.AreEqual(3, InstrumentationPoint.GetVisitCount(pt2.UniqueSequencePoint));
+            Assert.AreEqual(0, pt1.GetContextVisit(contextIdTwo).VisitCount);
+            Assert.AreEqual(1, pt1.GetContextVisit(contextIdOne).VisitCount);
+            Assert.AreEqual(1, pt2.GetContextVisit(contextIdTwo).VisitCount);
+            Assert.AreEqual(2, pt2.GetContextVisit(contextIdOne).VisitCount);
+        }
+
+        [Test]
+        public void SaveVisitPoints_Returns_Zero_For_Unknown_Context()
+        {
+            // arrange
+            var pt1 = new SequencePoint();
+
+            var points = new[]
+                {pt1.UniqueSequencePoint};
+
+            var contextIdOne = Guid.NewGuid();
+            var contextIdTwo = Guid.NewGuid();
+            var pointsContext = new[]
+            {
+                GetContextIdPart(contextIdOne, true), GetContextIdPart(contextIdOne, false),
+            };
+
+            var data = new List<byte>();
+            data.AddRange(BitConverter.GetBytes((UInt32)points.Count() * 5));
+            for (var index = 0; index < points.Length; index++)
+            {
+                uint point = points[index];
+                var pointIdIndex = index * 2;
+                data.AddRange(BitConverter.GetBytes(point));
+                data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex]));
+                data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex + 1]));
+            }
+
+            // act
+            Instance.SaveVisitData(data.ToArray());
+
+            // assert
+            Assert.AreEqual(0, pt1.GetContextVisit(contextIdTwo).VisitCount);
+        }
+
+        [Test]
+        public void SaveVisitPoints_Message_Logged_When_Context_Ends()
+        {
+            // arrange
+            var pt1 = new SequencePoint();
+            var pt2 = new SequencePoint();
+
+            var points = new[]
+                {pt1.UniqueSequencePoint, Convert.ToUInt32(MSG_IdType.IT_VisitPointContextEnd), pt1.UniqueSequencePoint, pt2.UniqueSequencePoint, pt2.UniqueSequencePoint, pt2.UniqueSequencePoint};
+
+            var contextIdOne = Guid.NewGuid();
+            var contextIdTwo = Guid.NewGuid();
+            var contextIdThree = Guid.NewGuid();
+            var pointsContext = new[]
+            {
+                GetContextIdPart(contextIdOne, true), GetContextIdPart(contextIdOne, false),
+                GetContextIdPart(contextIdOne, true), GetContextIdPart(contextIdOne, false),
+                GetContextIdPart(contextIdTwo, true), GetContextIdPart(contextIdTwo, false),
+                GetContextIdPart(contextIdTwo, true), GetContextIdPart(contextIdTwo, false),
+                GetContextIdPart(contextIdTwo, true), GetContextIdPart(contextIdTwo, false),
+                GetContextIdPart(contextIdThree, true), GetContextIdPart(contextIdThree, false)
+            };
+
+            var data = new List<byte>();
+            data.AddRange(BitConverter.GetBytes((UInt32)points.Count() * 5));
+            for (var index = 0; index < points.Length; index++)
+            {
+                uint point = points[index];
+                var pointIdIndex = index * 2;
+                data.AddRange(BitConverter.GetBytes(point));
+                data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex]));
+                data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex + 1]));
+            }
+
+            var mockLog = Container.GetMock<ILog>();
+            mockLog.Setup(x => x.InfoFormat(It.IsAny<string>()));
+            
+            // act
+            Instance.SaveVisitData(data.ToArray());
+
+            // assert
+            mockLog.Verify(x => x.InfoFormat($"Context {contextIdOne} has ended."), Times.Once());
+            Assert.AreEqual(2, InstrumentationPoint.GetVisitCount(pt1.UniqueSequencePoint));
+            Assert.AreEqual(3, InstrumentationPoint.GetVisitCount(pt2.UniqueSequencePoint));
+            Assert.AreEqual(1, pt1.GetContextVisit(contextIdOne).VisitCount);
+            Assert.AreEqual(1, pt1.GetContextVisit(contextIdTwo).VisitCount);
+            Assert.AreEqual(2, pt2.GetContextVisit(contextIdTwo).VisitCount);
+            Assert.AreEqual(1, pt2.GetContextVisit(contextIdThree).VisitCount);
+        }
+
+        [Test]
+        public void SaveVisitPoints_Does_Not_Count_Visits_For_Empty_Context()
+        {
+            // arrange
+            var pt1 = new SequencePoint();
+
+            var points = new[]
+                {pt1.UniqueSequencePoint};
+
+            var contextIdOne = Guid.Empty;
+            var pointsContext = new[]
+            {
+                GetContextIdPart(contextIdOne, true), GetContextIdPart(contextIdOne, false)
+            };
+
+            var data = new List<byte>();
+            data.AddRange(BitConverter.GetBytes((UInt32)points.Count() * 5));
+            for (var index = 0; index < points.Length; index++)
+            {
+                uint point = points[index];
+                var pointIdIndex = index * 2;
+                data.AddRange(BitConverter.GetBytes(point));
+                data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex]));
+                data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex + 1]));
+            }
+
+            // act
+            Instance.SaveVisitData(data.ToArray());
+
+            // assert
+            Assert.AreEqual(1, InstrumentationPoint.GetVisitCount(pt1.UniqueSequencePoint));
+            Assert.AreEqual(0, pt1.GetContextVisit(contextIdOne).VisitCount);
+        }
+
+        private static ulong GetContextIdPart(Guid contextId, bool shouldGetHighPart)
+        {
+            var idBytes = contextId.ToByteArray();
+
+            return BitConverter.ToUInt64(idBytes, shouldGetHighPart ? 8 : 0);
         }
     }
 }

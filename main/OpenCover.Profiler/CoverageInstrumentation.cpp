@@ -15,11 +15,11 @@ namespace CoverageInstrumentation
         return firstInstruction;
     }
 
-    Instruction* InsertFunctionCall(InstructionList &instructions, mdSignature pvsig, FPTR pt, ULONGLONG uniqueId)
+	Instruction* InsertFunctionCall(InstructionList &instructions, mdSignature pvsig, FPTR pt, ULONGLONG uniqueId)
     {
         Instruction *firstInstruction = new Instruction(CEE_LDC_I4, uniqueId);
-        instructions.push_back(firstInstruction);
-    #ifdef _WIN64
+		instructions.push_back(firstInstruction);
+#ifdef _WIN64
         instructions.push_back(new Instruction(CEE_LDC_I8, (ULONGLONG)pt));
     #else
         instructions.push_back(new Instruction(CEE_LDC_I4, (ULONG)pt));

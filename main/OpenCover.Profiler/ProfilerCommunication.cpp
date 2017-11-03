@@ -312,6 +312,11 @@ namespace Communication
 
 	void ProfilerCommunication::AddVisitPointToBuffer(ULONG uniqueId, MSG_IdType msgType)
 	{
+		AddVisitPointToBuffer(uniqueId, 0ull, 0ull, msgType);
+	}
+
+	void ProfilerCommunication::AddVisitPointToBuffer(ULONG uniqueId, ULONGLONG contextIdHigh, ULONGLONG contextIdLow, MSG_IdType msgType)
+	{
 		ATL::CComCritSecLock<ATL::CComAutoCriticalSection> lock(_critResults);
 
 		if (!_hostCommunicationActive)
@@ -321,10 +326,15 @@ namespace Communication
 			return;
 
 		handle_exception([=]() {
-			_pVisitPoints->points[_pVisitPoints->count].UniqueId = (uniqueId | msgType);
+			auto index = _pVisitPoints->count / 5;
+			auto& point = _pVisitPoints->points[index];
+			point.UniqueId = (uniqueId | msgType);
+			point.ContextIdHigh = contextIdHigh;
+			point.ContextIdLow = contextIdLow;
 		}, _T("AddVisitPointToBuffer"));
 
-		if (++_pVisitPoints->count == VP_BUFFER_SIZE)
+		_pVisitPoints->count += 5;
+		if (_pVisitPoints->count / 5 == VP_BUFFER_SIZE)
 		{
 			SendVisitPoints();
 		}

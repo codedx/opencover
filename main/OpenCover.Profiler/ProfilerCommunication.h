@@ -39,7 +39,7 @@ namespace Communication
 		inline void AddTestEnterPoint(ULONG uniqueId) { AddVisitPointToBuffer(uniqueId, IT_MethodEnter); }
 		inline void AddTestLeavePoint(ULONG uniqueId) { AddVisitPointToBuffer(uniqueId, IT_MethodLeave); }
 		inline void AddTestTailcallPoint(ULONG uniqueId) { AddVisitPointToBuffer(uniqueId, IT_MethodTailcall); }
-		inline void AddVisitPoint(ULONG uniqueId) { AddVisitPointToBuffer(uniqueId, IT_VisitPoint); }
+		inline void AddVisitPoint(ULONG uniqueId, ULONGLONG contextIdHigh, ULONGLONG contextIdLow) { AddVisitPointToBuffer(uniqueId, contextIdHigh, contextIdLow, IT_VisitPoint); }
 		void AddVisitPointToThreadBuffer(ULONG uniqueId, MSG_IdType msgType);
 		void CloseChannel(bool sendSingleBuffer);
 
@@ -55,6 +55,7 @@ namespace Communication
 
 	private:
 		void AddVisitPointToBuffer(ULONG uniqueId, MSG_IdType msgType);
+		void AddVisitPointToBuffer(ULONG uniqueId, ULONGLONG contextIdHigh, ULONGLONG contextIdLow, MSG_IdType msgType);
 		void SendVisitPoints();
 		void SendVisitPointsInternal();
 		void SendThreadVisitPoints(MSG_SendVisitPoints_Request* pVisitPoints);

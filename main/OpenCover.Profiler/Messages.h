@@ -7,7 +7,7 @@
 
 #define SEQ_BUFFER_SIZE 8000
 #define BRANCH_BUFFER_SIZE 2000
-#define VP_BUFFER_SIZE 16000
+#define VP_BUFFER_SIZE 3276 // MAX_MSG_SIZE / sizeof(VisitPoint)
 #define MAX_MSG_SIZE 65536
 
 #pragma pack(push)
@@ -29,6 +29,8 @@ struct BranchPoint
 struct VisitPoint
 {
     ULONG UniqueId;
+	ULONGLONG ContextIdHigh;
+	ULONGLONG ContextIdLow;
 };
 
 #pragma pack(pop)
@@ -48,6 +50,7 @@ enum MSG_Type : int
 enum MSG_IdType : ULONG
 {
     IT_VisitPoint = 0x00000000,
+	IT_VisitPointContextEnd = 0x3FFFFFFF,
     IT_MethodEnter = 0x40000000,
     IT_MethodLeave = 0x80000000,
     IT_MethodTailcall = 0xC0000000,

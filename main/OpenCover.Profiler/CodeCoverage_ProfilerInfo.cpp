@@ -74,6 +74,27 @@ mdSignature CCodeCoverage::GetMethodSignatureToken_I4(ModuleID moduleID)
     return pmsig;
 }
 
+mdSignature CCodeCoverage::GetMethodSignatureToken_I4U8U8(ModuleID moduleID)
+{
+	static COR_SIGNATURE unmanagedCallSignature[] =
+	{
+		IMAGE_CEE_CS_CALLCONV_DEFAULT,          // Default CallKind!
+		0x03,                                   // Parameter count
+		ELEMENT_TYPE_VOID,                      // Return type
+		ELEMENT_TYPE_I4,                        // Parameter type (I4)
+		ELEMENT_TYPE_U8,                        // Parameter type (U8)
+		ELEMENT_TYPE_U8                         // Parameter type (U8)
+	};
+
+	CComPtr<IMetaDataEmit> metaDataEmit;
+	COM_FAIL_MSG_RETURN_OTHER(m_profilerInfo2->GetModuleMetaData(moduleID, ofWrite, IID_IMetaDataEmit, (IUnknown**)&metaDataEmit), 0,
+		_T("    ::GetMethodSignatureToken_I4U8U8(ModuleID) => GetModuleMetaData => 0x%X"));
+
+	mdSignature pmsig;
+	COM_FAIL_MSG_RETURN_OTHER(metaDataEmit->GetTokenFromSig(unmanagedCallSignature, sizeof(unmanagedCallSignature), &pmsig), 0,
+		_T("    ::GetMethodSignatureToken_I4U8U8(ModuleID) => GetTokenFromSig => 0x%X"));
+	return pmsig;
+}
 
 HRESULT CCodeCoverage::GetModuleRef(ModuleID moduleId, const WCHAR*moduleName, mdModuleRef &mscorlibRef)
 {

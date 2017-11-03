@@ -79,6 +79,18 @@ namespace OpenCover.Framework.Model
         /// <param name="amount">the number of visit points to add</param>
         public static bool AddVisitCount(uint spid, uint trackedMethodId, int amount)
         {
+            return AddVisitCount(spid, Guid.Empty, trackedMethodId, amount);
+        }
+
+        /// <summary>
+        /// Add a number of recorded visit ppints against this identifier
+        /// </summary>
+        /// <param name="spid">the sequence point identifier - NOTE 0 is not used</param>
+        /// <param name="contextId">context identifier associated with code coverage</param>
+        /// <param name="trackedMethodId">the id of a tracked method - Note 0 means no method currently tracking</param>
+        /// <param name="amount">the number of visit points to add</param>
+        public static bool AddVisitCount(uint spid, Guid contextId, uint trackedMethodId, int amount)
+        {
             if (spid != 0 && spid < InstrumentPoints.Count)
             {
                 var point = InstrumentPoints[(int) spid];
@@ -91,6 +103,15 @@ namespace OpenCover.Framework.Model
                 {
                     AddOrUpdateTrackingPoint(trackedMethodId, amount, point);
                 }
+
+                if (contextId == Guid.Empty)
+                {
+                    return true;
+                }
+
+                var contextVisit = point.GetContextVisit(contextId);
+                contextVisit.VisitCount++;
+
                 return true;
             }
             return false;
@@ -116,6 +137,11 @@ namespace OpenCover.Framework.Model
         private List<TrackedMethodRef> _tracked;
 
         /// <summary>
+        /// List of items that track visit count for specific contexts.
+        /// </summary>
+        public List<ContextVisit> ContextVisits { get; }
+
+        /// <summary>
         /// Initialise
         /// </summary>
         public InstrumentationPoint()
@@ -125,7 +151,26 @@ namespace OpenCover.Framework.Model
                 UniqueSequencePoint = (uint)++_instrumentPoint;
                 InstrumentPoints.Add(this);
                 OrigSequencePoint = UniqueSequencePoint;
+                ContextVisits = new List<ContextVisit>();
             }
+        }
+
+        /// <summary>
+        /// Gets the context visit data for a given context identifier.
+        /// </summary>
+        /// <param name="contextId">The identifier associated with a specific context.</param>
+        /// <returns>The visit object containing a visit count associated with the context identifier.</returns>
+        public ContextVisit GetContextVisit(Guid contextId)
+        {
+            var contextVisit = ContextVisits.SingleOrDefault(x => x.ContextId == contextId);
+            if (contextVisit != null)
+            {
+                return contextVisit;
+            }
+
+            contextVisit = new ContextVisit { ContextId = contextId };
+            ContextVisits.Add(contextVisit);
+            return contextVisit;
         }
 
         /// <summary>

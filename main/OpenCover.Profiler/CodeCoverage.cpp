@@ -240,6 +240,19 @@ HRESULT STDMETHODCALLTYPE CCodeCoverage::Shutdown( void)
 	});
 }
 
+
+
+/// <summary>An unmanaged callback that can be called from .NET that has an I4 parameter
+/// and two U8 parameters.</summary>
+/// <remarks>
+/// void (__fastcall *pt)(long) = &amp;SequencePointVisit ;
+/// mdSignature pmsig = GetMethodSignatureToken_I4U8U8(moduleId);
+/// </remarks>
+static void __fastcall InstrumentPointVisitWithContext(ULONG seq, ULONGLONG contextIdHigh, ULONGLONG contextIdLow)
+{
+	CCodeCoverage::g_pProfiler->AddVisitPoint(seq, contextIdHigh, contextIdLow);
+}
+
 /// <summary>An unmanaged callback that can be called from .NET that has a single I4 parameter</summary>
 /// <remarks>
 /// void (__fastcall *pt)(long) = &amp;SequencePointVisit ;
@@ -247,12 +260,12 @@ HRESULT STDMETHODCALLTYPE CCodeCoverage::Shutdown( void)
 /// </remarks>
 static void __fastcall InstrumentPointVisit(ULONG seq)
 {
-    CCodeCoverage::g_pProfiler->AddVisitPoint(seq);
+	CCodeCoverage::g_pProfiler->AddVisitPoint(seq, 0ull, 0ull);
 }
 
-void __fastcall CCodeCoverage::AddVisitPoint(ULONG uniqueId)
+void __fastcall CCodeCoverage::AddVisitPoint(ULONG uniqueId, ULONGLONG contextIdHigh, ULONGLONG contextIdLow)
 { 
-    if (uniqueId == 0) return;
+	if (uniqueId == 0) return;
     if (m_threshold != 0)
     {
         ULONG& threshold = m_thresholds.at(uniqueId);
@@ -262,7 +275,7 @@ void __fastcall CCodeCoverage::AddVisitPoint(ULONG uniqueId)
     }
 
     if (safe_mode_) {
-        _host->AddVisitPoint(uniqueId);
+        _host->AddVisitPoint(uniqueId, contextIdHigh, contextIdLow);
     }
     else {
         _host->AddVisitPointToThreadBuffer(uniqueId, IT_VisitPoint);
@@ -411,8 +424,12 @@ HRESULT STDMETHODCALLTYPE CCodeCoverage::JITCompilationStarted(
     return CProfilerBase::JITCompilationStarted(functionId, fIsSafeToBlock); 
 }
 
-ipv CCodeCoverage::GetInstrumentPointVisit(){
+ipv CCodeCoverage::GetInstrumentPointVisit() {
 	return &InstrumentPointVisit;
+}
+
+ipvc CCodeCoverage::GetInstrumentPointVisitWithContext(){
+	return &InstrumentPointVisitWithContext;
 }
 
 void CCodeCoverage::InstrumentMethod(ModuleID moduleId, Instrumentation::Method& method,  std::vector<SequencePoint> seqPoints, std::vector<BranchPoint> brPoints)

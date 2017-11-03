@@ -27,6 +27,7 @@
 
 #include "CoverageInstrumentation.h"
 
+typedef void(__fastcall *ipvc)(ULONG, ULONGLONG, ULONGLONG);
 typedef void(__fastcall *ipv)(ULONG);
 
 #define BUFFER_SIZE 16384
@@ -91,7 +92,7 @@ public:
     std::wstring GetAssemblyName(AssemblyID assemblyId);
     BOOL GetTokenAndModule(FunctionID funcId, mdToken& functionToken, ModuleID& moduleId, std::wstring &modulePath, AssemblyID *pAssemblyId);
 	std::wstring GetTypeAndMethodName(FunctionID functionId);
-    void __fastcall AddVisitPoint(ULONG uniqueId);
+    void __fastcall AddVisitPoint(ULONG uniqueId, ULONGLONG contextIdHigh, ULONGLONG contextIdLow);
 
 private:
     std::shared_ptr<Communication::ProfilerCommunication> _host;
@@ -100,6 +101,7 @@ private:
 	DWORD AppendProfilerEventMask(DWORD currentEventMask);
 
 	ipv static GetInstrumentPointVisit();
+	ipvc static GetInstrumentPointVisitWithContext();
 
 private:
     static UINT_PTR _stdcall FunctionMapper2(FunctionID functionId, void* clientData, BOOL* pbHookFunction);
@@ -143,7 +145,9 @@ private:
 
 
 private:
-    mdSignature GetMethodSignatureToken_I4(ModuleID moduleID); 
+	mdSignature GetMethodSignatureToken_I4(ModuleID moduleID);
+	mdSignature GetMethodSignatureToken_I4U8U8(ModuleID moduleID);
+
     HRESULT GetModuleRef(ModuleID moduleId, const WCHAR*moduleName, mdModuleRef &mscorlibRef);
 
     HRESULT GetModuleRef4000(IMetaDataAssemblyEmit *metaDataAssemblyEmit, const WCHAR* moduleName, mdModuleRef &mscorlibRef);
