@@ -60,6 +60,7 @@ namespace OpenCover.Framework.Model
                 module.Classes = _symbolManager.GetInstrumentableTypes();
                 foreach (var @class in module.Classes)
                 {
+                    @class.DeclaringModule = module;
                     BuildClassModel(@class, module.Files);
                 }
             }
@@ -99,6 +100,8 @@ namespace OpenCover.Framework.Model
 
             foreach (var method in methods)
             {
+                method.DeclaringClass = @class;
+                
                 if (!method.ShouldSerializeSkippedDueTo())
                 {
                     method.SequencePoints = _symbolManager.GetSequencePointsForToken(method.MetadataToken);

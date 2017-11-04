@@ -38,6 +38,12 @@ namespace OpenCover.Framework.Model
         public Method[] Methods { get; set; }
 
         /// <summary>
+        /// Module containing class declaration.
+        /// </summary>
+        [XmlIgnore]
+        public Module DeclaringModule { get; set; }
+
+        /// <summary>
         /// If a class was skipped by instrumentation, supply the reason why
         /// </summary>
         /// <param name="reason"></param>

@@ -38,6 +38,83 @@ namespace OpenCover.Test.Framework.Model
         }
 
         [Test]
+        public void BuildModuleModel_Gets_DeclaringModule_From_SymbolReader()
+        {
+            // arrange
+            var @class = new Class();
+            Container.GetMock<ISymbolManager>()
+                .Setup(x => x.GetInstrumentableTypes())
+                .Returns(new[] { @class });
+
+            Container.GetMock<IFilter>()
+                .Setup(x => x.UseAssembly(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(true);
+
+            // act
+            var module = Instance.BuildModuleModel(true);
+
+            // assert
+            Assert.AreEqual(1, module.Classes.Length);
+            Assert.AreSame(module, module.Classes[0].DeclaringModule);
+        }
+
+        [Test]
+        public void BuildModuleModel_Gets_Method_From_InstrumentationPoint()
+        {
+            InstrumentationPoint.Clear();
+
+            var @class = new Class();
+            Container.GetMock<ISymbolManager>()
+                .Setup(x => x.GetInstrumentableTypes())
+                .Returns(new[] { @class });
+
+            Container.GetMock<ISymbolManager>()
+                .Setup(x => x.GetMethodsForType(It.IsAny<Class>(), It.IsAny<File[]>()))
+                .Returns(new[] { new Method { FullName = "Method1"} });
+
+            Container.GetMock<IFilter>()
+                .Setup(x => x.UseAssembly(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(true);
+
+            // act
+            var module = Instance.BuildModuleModel(true);
+
+            // assert
+            Assert.AreEqual(1, module.Classes.Length);
+            Assert.AreEqual(1, module.Classes[0].Methods.Length);
+            Assert.AreEqual("Method1", InstrumentationPoint.GetDeclaringMethod(1).FullName);
+        }
+
+        [Test]
+        public void BuildModuleModel_Gets_DeclaringClass_From_SymbolReader()
+        {
+            // arrange
+            var @class = new Class();
+            Container.GetMock<ISymbolManager>()
+                .Setup(x => x.GetInstrumentableTypes())
+                .Returns(new[] { @class });
+
+            Container.GetMock<ISymbolManager>()
+                .Setup(x => x.GetMethodsForType(It.IsAny<Class>(), It.IsAny<File[]>()))
+                .Returns(new[] { new Method(), new Method(), new Method() });
+
+            Container.GetMock<IFilter>()
+                .Setup(x => x.UseAssembly(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(true);
+
+            // act
+            var module = Instance.BuildModuleModel(true);
+
+            // assert
+            Assert.AreEqual(1, module.Classes.Length);
+            Assert.AreEqual(3, module.Classes[0].Methods.Length);
+            foreach (var method in module.Classes[0].Methods)
+            {
+                Assert.AreSame(@class, method.DeclaringClass);
+            }
+        }
+
+        [Test]
         public void BuildModuleModel_Gets_ModuleName_From_SymbolReader()
         {
             // arrange

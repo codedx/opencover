@@ -97,5 +97,19 @@ namespace OpenCover.Test.Framework.Model
             Assert.IsFalse(new SequencePoint { FileId = 1, StartLine = 1, StartColumn = 1, EndLine = 1, EndColumn = 3 }.IsSingleCharSequencePoint);
             Assert.IsFalse(new SequencePoint { FileId = 1, StartLine = 1, StartColumn = 1, EndLine = 2, EndColumn = 2 }.IsSingleCharSequencePoint);
         }
+
+        [Test]
+        public void CanReturnStartAndEndLineNumbers()
+        {
+            // arrange
+            var sequencePoint = new SequencePoint {StartLine = 1, EndLine = 2};
+
+            // act
+            var lineNumbers = sequencePoint.GetLineNumbers();
+
+            // assert
+            Assert.AreEqual(1, lineNumbers.Item1);
+            Assert.AreEqual(2, lineNumbers.Item2);
+        }
     }
 }

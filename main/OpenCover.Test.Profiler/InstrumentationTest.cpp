@@ -589,6 +589,90 @@ TEST_F(InstrumentationTest, CanWriteMethod)
     ASSERT_EQ(11, newMethod->GetCodeSize());
 }
 
+TEST_F(InstrumentationTest, CanDeleteAllInstructions)
+{
+	const int instructionByteCount = 2;
+	BYTE data[] = { (instructionByteCount << 2) + CorILMethod_TinyFormat,
+		CEE_LDC_I4_0,
+		CEE_RET };
+
+	Method method(reinterpret_cast<IMAGE_COR_ILMETHOD*>(data));
+
+	BYTE buffer[50];
+	::ZeroMemory(buffer, sizeof(buffer));
+
+	method.DeleteAllInstructions();
+
+	auto instructionList = InstructionList();
+	instructionList.push_back(new Instruction(CEE_POP));
+	method.AppendInstructions(instructionList);
+
+	auto newMethod = reinterpret_cast<COR_ILMETHOD_FAT*>(&buffer);
+	method.WriteMethod(reinterpret_cast<IMAGE_COR_ILMETHOD*>(newMethod));
+
+	auto popInstruction = newMethod->GetCode();
+
+	ASSERT_EQ(CEE_POP, *popInstruction);
+}
+
+TEST_F(InstrumentationTest, CanAddExceptionToMethod)
+{
+	const auto instructionByteCount = 2;
+	BYTE data[] = { (instructionByteCount << 2) + CorILMethod_TinyFormat,
+		CEE_LDC_I4_0,
+		CEE_RET };
+
+	Method method(reinterpret_cast<IMAGE_COR_ILMETHOD*>(data));
+
+	const auto initializationByte = 0xEF;
+
+	BYTE buffer[150];
+	memset(buffer, initializationByte, sizeof(buffer));
+
+	method.DeleteAllInstructions();
+
+	auto instructionList = InstructionList();
+	instructionList.push_back(new Instruction(CEE_NOP));
+	instructionList.push_back(new Instruction(CEE_NOP));
+	instructionList.push_back(new Instruction(CEE_NOP));
+	method.AppendInstructions(instructionList);
+
+	instructionList[0]->m_offset = 0;
+	instructionList[1]->m_offset = 1;
+	instructionList[2]->m_offset = 2;
+	
+	auto exceptionHandler = new ExceptionHandler();
+	exceptionHandler->SetTypedHandlerData(0x0100001E,
+		instructionList[0],
+		instructionList[1],
+		instructionList[1],
+		instructionList[2]);
+
+	auto exceptionHandlerList = ExceptionHandlerList();
+	exceptionHandlerList.push_back(exceptionHandler);
+	method.AddExceptionHandlers(exceptionHandlerList);
+
+	auto newMethod = reinterpret_cast<COR_ILMETHOD_FAT*>(&buffer);
+	method.WriteMethod(reinterpret_cast<IMAGE_COR_ILMETHOD*>(newMethod));
+
+	auto codeStart = newMethod->GetCode();
+
+	ASSERT_TRUE(newMethod->IsFat());
+	ASSERT_EQ(CorILMethod_MoreSects, newMethod->GetFlags() & CorILMethod_MoreSects);
+	ASSERT_EQ(0, codeStart[0]);
+	ASSERT_EQ(0, codeStart[1]);
+	ASSERT_EQ(0, codeStart[2]);
+	ASSERT_EQ(initializationByte, codeStart[3]); // Byte that's skipped to DWORD-align exception section
+	ASSERT_EQ(CorILMethod_Sect_FatFormat + CorILMethod_Sect_EHTable, codeStart[4]); // Section.Kind
+	ASSERT_EQ(28, codeStart[5]); // Section.DataSize
+	ASSERT_EQ(0, codeStart[8]); // Handler Type
+	ASSERT_EQ(0, codeStart[12]); // Try Begin
+	ASSERT_EQ(1, codeStart[16]); // Try Offset
+	ASSERT_EQ(1, codeStart[20]); // Handler Begin
+	ASSERT_EQ(1, codeStart[24]); // Handler Offset
+	ASSERT_EQ(0x0100001E, *(reinterpret_cast<int*>(codeStart + 28))); // Token
+}
+
 TEST_F(InstrumentationTest, CanWriteMethodWithExceptions)
 {
     BYTE data[] = {

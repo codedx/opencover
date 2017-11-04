@@ -20,6 +20,21 @@ namespace Instrumentation
 	public:
 		ExceptionHandler();
 
+		void SetTypedHandlerData(ULONG exceptionToken, 
+			Instruction * tryStart,
+			Instruction * tryEnd,
+			Instruction * handlerStart,
+			Instruction * handlerEnd)
+		{
+			m_handlerType = COR_ILEXCEPTION_CLAUSE_NONE;
+			m_tryStart = tryStart;
+			m_tryEnd = tryEnd;
+			m_handlerStart = handlerStart;
+			m_handlerEnd = handlerEnd;
+			m_filterStart = nullptr;
+			m_token = exceptionToken;
+		}
+
 #ifdef TEST_FRAMEWORK
 	public:
 #else

@@ -503,6 +503,48 @@ HRESULT CCodeCoverage::InstrumentMethodWith(ModuleID moduleId, mdToken functionT
     return S_OK;
 }
 
+HRESULT CCodeCoverage::ReplaceMethodWith(ModuleID moduleId, mdToken functionToken, InstructionList &instructions, mdSignature localVarSigTok, unsigned minimumStackSize)
+{
+	ExceptionHandlerList exceptionHandlerList;
+	return ReplaceMethodWith(moduleId, functionToken, instructions, localVarSigTok, minimumStackSize, exceptionHandlerList);
+}
+
+HRESULT CCodeCoverage::ReplaceMethodWith(ModuleID moduleId, mdToken functionToken, InstructionList &instructions, mdSignature localVarSigTok, unsigned minimumStackSize, ExceptionHandlerList &exceptions)
+{
+	IMAGE_COR_ILMETHOD* pMethodHeader = nullptr;
+	ULONG iMethodSize = 0;
+	COM_FAIL_MSG_RETURN_ERROR(m_profilerInfo->GetILFunctionBody(moduleId, functionToken, (LPCBYTE*)&pMethodHeader, &iMethodSize),
+		_T("    ::ReplaceMethodWith(...) => GetILFunctionBody => 0x%X"));
+
+	Method method(pMethodHeader);
+	method.DeleteAllInstructions();
+	method.AppendInstructions(instructions);
+	method.SetMinimumStackSize(minimumStackSize);
+
+	if (exceptions.size() > 0)
+	{
+		method.AddExceptionHandlers(exceptions);
+	}
+
+	CComPtr<IMethodMalloc> methodMalloc;
+	COM_FAIL_MSG_RETURN_ERROR(m_profilerInfo->GetILFunctionBodyAllocator(moduleId, &methodMalloc),
+		_T("    ::ReplaceMethodWith(...) => GetILFunctionBodyAllocator=> 0x%X"));
+
+	IMAGE_COR_ILMETHOD* pNewMethod = static_cast<IMAGE_COR_ILMETHOD*>(methodMalloc->Alloc(method.GetMethodSize()));
+	method.WriteMethod(pNewMethod);
+
+	if (localVarSigTok != mdSignatureNil)
+	{
+		pNewMethod->Fat.Flags |= CorILMethod_InitLocals; // always added when local variables present: http://www.liranchen.com/2010/07/behind-locals-init-flag.html
+		pNewMethod->Fat.LocalVarSigTok = localVarSigTok;
+	}
+
+	COM_FAIL_MSG_RETURN_ERROR(m_profilerInfo->SetILFunctionBody(moduleId, functionToken, (LPCBYTE)pNewMethod),
+		_T("    ::ReplaceMethodWith(...) => SetILFunctionBody => 0x%X"));
+
+	return S_OK;
+}
+
 int CCodeCoverage::getSendVisitPointsTimerInterval()
 {
 	int timerIntervalValue = 0;

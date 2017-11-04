@@ -168,6 +168,9 @@ private:
 		ModuleID moduleId);
 	std::wstring cuckoo_module_;
 
+	HRESULT ReplaceMethodWith(ModuleID moduleId, mdToken functionToken, Instrumentation::InstructionList &instructions, mdSignature localVarSigTok = mdSignatureNil, unsigned minimumStackSize = 8);
+	HRESULT ReplaceMethodWith(ModuleID moduleId, mdToken functionToken, Instrumentation::InstructionList &instructions, mdSignature localVarSigTok, unsigned minimumStackSize, Instrumentation::ExceptionHandlerList &exceptions);
+
 private:
 	HMODULE chained_module_;
 

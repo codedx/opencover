@@ -72,6 +72,25 @@ namespace OpenCover.Framework.Model
         }
 
         /// <summary>
+        /// Gets the method where this instrumentation point is defined.
+        /// </summary>
+        /// <param name="spid">the sequence point identifier - NOTE 0 is not used</param>
+        /// <returns>Method where instrumentation point is defined</returns>
+        public static Method GetDeclaringMethod(uint spid)
+        {
+            return InstrumentPoints[(int) spid].DeclaringMethod;
+        }
+
+        /// <summary>
+        /// Gets line numbers associated with instrumentation point.
+        /// </summary>
+        /// <returns>A tuple consisting of optional start and end line.</returns>
+        public static Tuple<int?,int?> GetLineNumbers(uint spid)
+        {
+            return InstrumentPoints[(int) spid].GetLineNumbers();
+        }
+
+        /// <summary>
         /// Add a number of recorded visit ppints against this identifier
         /// </summary>
         /// <param name="spid">the sequence point identifier - NOTE 0 is not used</param>
@@ -174,6 +193,15 @@ namespace OpenCover.Framework.Model
         }
 
         /// <summary>
+        /// Gets line numbers associated with instrumentation point.
+        /// </summary>
+        /// <returns>A tuple consisting of optional start and end line.</returns>
+        public virtual Tuple<int?, int?> GetLineNumbers()
+        {
+            return null;
+        }
+
+        /// <summary>
         /// Store the number of visits
         /// </summary>
         [XmlAttribute("vc")]
@@ -203,6 +231,12 @@ namespace OpenCover.Framework.Model
         [XmlIgnore]
         public bool IsSkipped { get; set; }
 
+        /// <summary>
+        /// Method where the line(s) of this instrumentation point are defined.
+        /// </summary>
+        [XmlIgnore]
+        public Method DeclaringMethod { get; set; }
+        
         /// <summary>
         /// The list of tracked methods
         /// </summary>

@@ -6,6 +6,7 @@
 using System;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
+using Mono.Cecil;
 
 namespace OpenCover.Framework.Model
 {
@@ -44,6 +45,10 @@ namespace OpenCover.Framework.Model
             }
             set {
                 _sequencePoints = value ?? new SequencePoint[0];
+                foreach (var sequencePoint in _sequencePoints)
+                {
+                    sequencePoint.DeclaringMethod = this;
+                }
             }
         }
         private SequencePoint[] _sequencePoints = new SequencePoint[0];
@@ -57,6 +62,10 @@ namespace OpenCover.Framework.Model
             }
             set {
                 _branchPoints = value ?? new BranchPoint[0];
+                foreach (var branchPoint in _branchPoints)
+                {
+                    branchPoint.DeclaringMethod = this;
+                }
             }
         }
         private BranchPoint[] _branchPoints = new BranchPoint[0];
@@ -64,7 +73,20 @@ namespace OpenCover.Framework.Model
         /// <summary>
         /// A method point to identify the entry of a method
         /// </summary>
-        public InstrumentationPoint MethodPoint { get; set; }
+        public InstrumentationPoint MethodPoint
+        {
+            get {
+                return _methodPoint; 
+            }
+            set {
+                _methodPoint = value;
+                if (_methodPoint != null)
+                {
+                    _methodPoint.DeclaringMethod = this;
+                }
+            }
+        }
+        private InstrumentationPoint _methodPoint;
 
         /// <summary>
         /// Has the method been visited
@@ -132,6 +154,17 @@ namespace OpenCover.Framework.Model
         /// </summary>
         [XmlAttribute("isSetter")]
         public bool IsSetter { get; set; }
+
+        /// <summary>
+        /// Class declaring this method.
+        /// </summary>
+        [XmlIgnore]
+        public Class DeclaringClass { get; set; }
+
+        /// <summary>
+        /// Attributes for method.
+        /// </summary>
+        public MethodAttributes MethodAttributes { get; set; }
 
         /// <summary>
         /// Mark an entity as skipped

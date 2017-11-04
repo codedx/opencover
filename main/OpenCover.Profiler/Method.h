@@ -29,6 +29,11 @@ namespace Instrumentation
 
 		bool IsInstrumented(long offset, const InstructionList &instructions);
 
+		void AppendInstructions(const InstructionList &instructions);
+		void AddExceptionHandlers(const ExceptionHandlerList& exceptionHandler);
+
+		void DeleteAllInstructions();
+
 	public:
 		void SetMinimumStackSize(unsigned int minimumStackSize)
 		{

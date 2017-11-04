@@ -4,6 +4,7 @@
 // This source code is released under the MIT License; see the accompanying license file.
 //
 
+using System;
 using System.Linq;
 using System.Xml.Serialization;
 
@@ -39,6 +40,15 @@ namespace OpenCover.Framework.Model
         public bool ShouldSerializeOffsetPoints()
         {
             return OffsetPoints.Maybe(_ => _.Any());
+        }
+
+        /// <summary>
+        /// Gets line numbers associated with instrumentation point.
+        /// </summary>
+        /// <returns>A tuple consisting of optional start and end line.</returns>
+        public override Tuple<int?, int?> GetLineNumbers()
+        {
+            return new Tuple<int?, int?>(StartLine, null);
         }
 
         /// <summary>

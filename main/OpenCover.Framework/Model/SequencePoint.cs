@@ -86,6 +86,15 @@ namespace OpenCover.Framework.Model
         }
 
         /// <summary>
+        /// Gets line numbers associated with instrumentation point.
+        /// </summary>
+        /// <returns>A tuple consisting of optional start and end line.</returns>
+        public override Tuple<int?, int?> GetLineNumbers()
+        {
+            return new Tuple<int?, int?>(StartLine, EndLine);
+        }
+
+        /// <summary>
         /// SonnarQube wants no more than 3 boolean conditions
         /// </summary>
         /// <param name="sp"></param>

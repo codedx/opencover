@@ -234,6 +234,39 @@ namespace Instrumentation
 		RecalculateOffsets();
 	}
 
+	void Method::AddExceptionHandlers(const ExceptionHandlerList& exceptionHandler)
+	{
+		InstructionList clone;
+		for (auto it = exceptionHandler.begin(); it != exceptionHandler.end(); ++it)
+		{
+			auto newExceptionHandler = new ExceptionHandler();
+			newExceptionHandler->m_handlerType = (*it)->m_handlerType;
+			newExceptionHandler->m_tryStart = (*it)->m_tryStart;
+			newExceptionHandler->m_tryEnd = (*it)->m_tryEnd;
+			newExceptionHandler->m_handlerStart = (*it)->m_handlerStart;
+			newExceptionHandler->m_handlerEnd = (*it)->m_handlerEnd;
+			newExceptionHandler->m_filterStart = (*it)->m_filterStart;
+			newExceptionHandler->m_token = (*it)->m_token;
+
+			m_exceptions.push_back(newExceptionHandler);
+		}
+	}
+
+	void Method::DeleteAllInstructions()
+	{
+		for (auto it = m_instructions.begin(); it != m_instructions.end(); ++it)
+		{
+			delete *it;
+		}
+		m_instructions.clear();
+
+		for (auto it = m_exceptions.begin(); it != m_exceptions.end(); ++it)
+		{
+			delete *it;
+		}
+		m_exceptions.clear();
+	}
+
 	ExceptionHandler* Method::ReadExceptionHandler(
 		enum CorExceptionFlag type,
 		long tryStart, long tryEnd,
@@ -690,6 +723,19 @@ namespace Instrumentation
 				break;
 			}
 		}
+
+		RecalculateOffsets();
+	}
+
+	void Method::AppendInstructions(const InstructionList& instructions)
+	{
+		InstructionList clone;
+		for (auto it = instructions.begin(); it != instructions.end(); ++it)
+		{
+			clone.push_back(new Instruction(*(*it)));
+		}
+		
+		m_instructions.insert(m_instructions.end(), clone.begin(), clone.end());
 
 		RecalculateOffsets();
 	}

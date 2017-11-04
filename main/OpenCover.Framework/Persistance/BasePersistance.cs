@@ -584,35 +584,37 @@ namespace OpenCover.Framework.Persistance
                 {
                     idx += 4; // advance past int spid
 
-                    var requestHigh = BitConverter.ToUInt64(data, idx);
+                    var contextHigh = BitConverter.ToUInt64(data, idx);
                     idx += 8; // advance past GUID part
                     i += 2; // record 2 bytes read
                     
-                    var requestLow = BitConverter.ToUInt64(data, idx);
+                    var contextLow = BitConverter.ToUInt64(data, idx);
                     idx += 4; // advance past 1/2 GUID part, other half moved with loop iteration
                     i += 2; // record 2 bytes read
 
-                    var requestGuid = MakeGuid(requestHigh, requestLow);
+                    var contextId = MakeGuid(contextHigh, contextLow);
                     if (spid == (uint) MSG_IdType.IT_VisitPointContextEnd)
                     {
-                        if (_contextSpidMap.TryGetValue(requestGuid, out HashSet<uint> relatedSpids))
+                        if (_contextSpidMap.TryGetValue(contextId, out HashSet<uint> relatedSpids))
                         {
-                            _contextSpidMap.Remove(requestGuid);
+                            // for now, dump data about context to logger
+                            LogContext(contextId, relatedSpids);
+
+                            _contextSpidMap.Remove(contextId);
                         }
-                        _logger.InfoFormat($"Context {requestGuid} has ended.");
                         continue;
                     }
 
-                    if (!InstrumentationPoint.AddVisitCount(spid, requestGuid, _trackedMethodId, 1))
+                    if (!InstrumentationPoint.AddVisitCount(spid, contextId, _trackedMethodId, 1))
                     {
                         _logger.ErrorFormat("Failed to add a visit to {0} with tracking method {1}. Max point count is {2}",
                             spid, _trackedMethodId, InstrumentationPoint.Count);
                     }
 
-                    if (!_contextSpidMap.TryGetValue(requestGuid, out HashSet<uint> spids))
+                    if (!_contextSpidMap.TryGetValue(contextId, out HashSet<uint> spids))
                     {
                         spids = new HashSet<uint>();
-                        _contextSpidMap[requestGuid] = spids;
+                        _contextSpidMap[contextId] = spids;
                     }
                     spids.Add(spid);
                 }
@@ -1009,5 +1011,37 @@ namespace OpenCover.Framework.Persistance
             }
         }
 
+        private void LogContext(Guid contextId, HashSet<uint> relatedSpids)
+        {
+            foreach (var relatedSpid in relatedSpids)
+            {
+                var startAndEndLineNumber = InstrumentationPoint.GetLineNumbers(relatedSpid);
+                if (startAndEndLineNumber.Item1 == null || startAndEndLineNumber.Item2 == null)
+                {
+                    continue;
+                }
+
+                var declaringMethod = InstrumentationPoint.GetDeclaringMethod(relatedSpid);
+
+                var methodContainingSpid = GetMethod(declaringMethod.DeclaringClass.DeclaringModule.ModulePath,
+                    declaringMethod.MetadataToken, out var @class);
+                if (methodContainingSpid == null)
+                {
+                    continue;
+                }
+
+                var filePath = "?";
+                var firstFile = @class.Files.FirstOrDefault();
+                if (firstFile != null)
+                {
+                    filePath = firstFile.FullPath;
+                }
+
+                var logMessage = $"Class: {@class.FullName}\nFile: {filePath}\nCallName: {methodContainingSpid.CallName}\nFullName: {methodContainingSpid.FullName}\nMethodAttributes: {methodContainingSpid.MethodAttributes}\nStartLine: {startAndEndLineNumber.Item1.Value}\nEndLine: {startAndEndLineNumber.Item2.Value}";
+                _logger.InfoFormat($"LogContext => {logMessage}");
+            }
+
+            _logger.InfoFormat($"Context {contextId} has ended.");
+        }
     }
 }

@@ -316,7 +316,8 @@ namespace OpenCover.Framework.Symbols
                 IsStatic = methodDefinition.IsStatic,
                 IsGetter = methodDefinition.IsGetter,
                 IsSetter = methodDefinition.IsSetter,
-                MetadataToken = methodDefinition.MetadataToken.ToInt32()
+                MetadataToken = methodDefinition.MetadataToken.ToInt32(),
+                MethodAttributes = methodDefinition.Attributes
             };
 
             if (methodDefinition.SafeGetMethodBody() == null)

@@ -1374,6 +1374,27 @@ namespace OpenCover.Test.Framework.Persistance
             var pt1 = new SequencePoint();
             var pt2 = new SequencePoint();
 
+            var module = new Module();
+            var @class = new Class();
+            var method1 = new Method();
+            var method2 = new Method();
+
+            module.Classes = new[] {@class};
+            module.ModulePath = @"c:\module.dll";
+            module.Aliases.Add(module.ModulePath);
+
+            method1.DeclaringClass = @class;
+            method1.MetadataToken = 1;
+            method2.DeclaringClass = @class;
+            method2.MetadataToken = 2;
+
+            @class.DeclaringModule = module;
+            @class.Methods = new[] {method1, method2};
+            @class.Files = new File[0];
+
+            pt1.DeclaringMethod = method1;
+            pt2.DeclaringMethod = method2;
+
             var points = new[]
                 {pt1.UniqueSequencePoint, Convert.ToUInt32(MSG_IdType.IT_VisitPointContextEnd), pt1.UniqueSequencePoint, pt2.UniqueSequencePoint, pt2.UniqueSequencePoint, pt2.UniqueSequencePoint};
 
@@ -1394,7 +1415,7 @@ namespace OpenCover.Test.Framework.Persistance
             data.AddRange(BitConverter.GetBytes((UInt32)points.Count() * 5));
             for (var index = 0; index < points.Length; index++)
             {
-                uint point = points[index];
+                var point = points[index];
                 var pointIdIndex = index * 2;
                 data.AddRange(BitConverter.GetBytes(point));
                 data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex]));
@@ -1403,7 +1424,9 @@ namespace OpenCover.Test.Framework.Persistance
 
             var mockLog = Container.GetMock<ILog>();
             mockLog.Setup(x => x.InfoFormat(It.IsAny<string>()));
-            
+
+            Instance.PersistModule(module);
+
             // act
             Instance.SaveVisitData(data.ToArray());
 
