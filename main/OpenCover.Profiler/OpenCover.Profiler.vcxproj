@@ -269,6 +269,7 @@
     </Xdcmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AssemblyRegistry.cpp" />
     <ClCompile Include="CodeCoverage.cpp" />
     <ClCompile Include="CodeCoverage_Callback.cpp" />
     <ClCompile Include="CodeCoverage_Cuckoo.cpp" />
@@ -290,6 +291,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="InjectedType.cpp" />
     <ClCompile Include="Instruction.cpp" />
     <ClCompile Include="Method.cpp" />
     <ClCompile Include="NativeCallback.cpp" />
@@ -315,6 +317,7 @@
     <ClCompile Include="ProfilerCommunication.cpp" />
     <ClCompile Include="ExceptionHandler.cpp" />
     <ClCompile Include="ProfilerInfo.cpp" />
+    <ClCompile Include="PublicKeyTokenCreator.cpp" />
     <ClCompile Include="SharedMemory.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -323,6 +326,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="TraceContainerBase.cpp" />
+    <ClCompile Include="TraceContainerCallContext.cpp" />
     <ClCompile Include="xdlldata.c">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsManaged>
@@ -344,9 +349,11 @@
     <ClCompile Include="Operations.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AssemblyRegistry.h" />
     <ClInclude Include="CodeCoverage.h" />
     <ClInclude Include="CoverageInstrumentation.h" />
     <ClInclude Include="dllmain.h" />
+    <ClInclude Include="InjectedType.h" />
     <ClInclude Include="Instruction.h" />
     <ClInclude Include="Messages.h" />
     <ClInclude Include="Method.h" />
@@ -357,6 +364,7 @@
     <ClInclude Include="ProfilerCommunication.h" />
     <ClInclude Include="ProfilerInfo.h" />
     <ClInclude Include="ProfilerInfoBase.h" />
+    <ClInclude Include="PublicKeyTokenCreator.h" />
     <ClInclude Include="ReleaseTrace.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ExceptionHandler.h" />
@@ -365,6 +373,8 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Timer.h" />
+    <ClInclude Include="TraceContainerBase.h" />
+    <ClInclude Include="TraceContainerCallContext.h" />
     <ClInclude Include="xdlldata.h" />
     <ClInclude Include="Operations.h" />
   </ItemGroup>

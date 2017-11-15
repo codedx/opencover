@@ -26,6 +26,7 @@
 #define DNCORLIB_NAME L"System.Private.CoreLib"
 
 #include "CoverageInstrumentation.h"
+#include "TraceContainerCallContext.h"
 
 typedef void(__fastcall *ipvc)(ULONG, ULONGLONG, ULONGLONG);
 typedef void(__fastcall *ipv)(ULONG);
@@ -168,8 +169,14 @@ private:
 		ModuleID moduleId);
 	std::wstring cuckoo_module_;
 
-	HRESULT ReplaceMethodWith(ModuleID moduleId, mdToken functionToken, Instrumentation::InstructionList &instructions, mdSignature localVarSigTok = mdSignatureNil, unsigned minimumStackSize = 8);
-	HRESULT ReplaceMethodWith(ModuleID moduleId, mdToken functionToken, Instrumentation::InstructionList &instructions, mdSignature localVarSigTok, unsigned minimumStackSize, Instrumentation::ExceptionHandlerList &exceptions);
+	HRESULT RegisterTraceTypes(ModuleID moduleId);
+
+	HRESULT AddSafeCuckooBodyWithTraceContainer(ModuleID moduleId);
+	HRESULT AddSafeCuckooBodyWithoutTraceContainer(ModuleID moduleId);
+
+	std::shared_ptr<Injection::AssemblyRegistry> m_assemblyRegistry;
+	std::shared_ptr<Context::TraceContainerBase> m_traceContainerBase;
+	std::unique_ptr<Context::TraceContainerCallContext> m_traceContainerCallContext;
 
 private:
 	HMODULE chained_module_;
@@ -181,7 +188,7 @@ private:
     mdMethodDef CreatePInvokeHook(ModuleID moduleId);
     HRESULT OpenCoverSupportCompilation(FunctionID functionId, mdToken functionToken, ModuleID moduleId, AssemblyID assemblyId, std::wstring &modulePath);
 	mdMethodDef Get_CurrentDomainMethod(ModuleID moduleID);
-	HRESULT InstrumentMethodWith(ModuleID moduleId, mdToken functionToken, Instrumentation::InstructionList &instructions);
+	HRESULT InstrumentMethodWith(ModuleID moduleId, mdToken functionToken, Instrumentation::InstructionList &instructions, const mdSignature localVarSigTok = mdSignatureNil);
 
     bool OpenCoverSupportRequired(AssemblyID assemblyId, FunctionID functionId);
 

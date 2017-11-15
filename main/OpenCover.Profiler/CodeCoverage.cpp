@@ -10,10 +10,16 @@
 #include "NativeCallback.h"
 #include "dllmain.h"
 
+#include "AssemblyRegistry.h"
+#include "TraceContainerBase.h"
+#include "TraceContainerCallContext.h"
+
 CCodeCoverage* CCodeCoverage::g_pProfiler = nullptr;
 // CCodeCoverage
 
 using namespace Instrumentation;
+using namespace Injection;
+using namespace Context;
 
 /// <summary>Handle <c>ICorProfilerCallback::Initialize</c></summary>
 /// <remarks>Initialize the profiling environment and establish connection to the host</remarks>
@@ -82,6 +88,11 @@ HRESULT CCodeCoverage::OpenCoverInitialise(IUnknown *pICorProfilerInfoUnk){
     m_profilerInfo = pICorProfilerInfoUnk;
     if (m_profilerInfo != nullptr) ATLTRACE(_T("    ::Initialize (m_profilerInfo OK)"));
     if (m_profilerInfo == nullptr) return E_FAIL;
+
+	m_assemblyRegistry = std::make_shared<AssemblyRegistry>(m_profilerInfo);
+	m_traceContainerBase = std::make_shared<TraceContainerBase>(m_profilerInfo, m_assemblyRegistry);
+	m_traceContainerCallContext = std::make_unique<TraceContainerCallContext>(m_profilerInfo, m_assemblyRegistry, m_traceContainerBase);
+
     m_profilerInfo2 = pICorProfilerInfoUnk;
     if (m_profilerInfo2 != nullptr) ATLTRACE(_T("    ::Initialize (m_profilerInfo2 OK)"));
     if (m_profilerInfo2 == nullptr) return E_FAIL;
@@ -289,13 +300,36 @@ void CCodeCoverage::Resize(ULONG minSize) {
     }
 }
 
+HRESULT CCodeCoverage::RegisterTraceTypes(ModuleID moduleId)
+{
+	const auto typeRegisteredResult = m_traceContainerCallContext->RegisterTypeInModule(moduleId);
+	if (typeRegisteredResult == S_OK)
+	{
+		const auto injectTypeResult = m_traceContainerCallContext->InjectTypeImplementationInModule(moduleId);
+		if (SUCCEEDED(injectTypeResult))
+		{
+			return S_OK;
+		}
+		COM_FAIL_MSG_RETURN_ERROR(injectTypeResult, _T("Failed with HRESULT 0x%X to inject type implementation for module."));
+	}
+
+	if (typeRegisteredResult == S_FALSE)
+	{
+		return S_OK;
+	}
+	COM_FAIL_MSG_RETURN_ERROR(typeRegisteredResult, _T("Failed with HRESULT 0x%X to register type for module."));
+	
+	return S_OK;
+}
+
 HRESULT STDMETHODCALLTYPE CCodeCoverage::ModuleLoadFinished(
 	/* [in] */ ModuleID moduleId,
 	/* [in] */ HRESULT hrStatus)
 {
-
 	return ChainCall([&]() { return CProfilerBase::ModuleLoadFinished(moduleId, hrStatus); },
-		[&]() { return RegisterCuckoos(moduleId); });
+		[&]() { return RegisterCuckoos(moduleId); },
+		[&]() { return m_assemblyRegistry->RecordAssemblyMetadataForModule(moduleId); },
+		[&]() { return RegisterTraceTypes(moduleId); });
 }
 
 /// <summary>Handle <c>ICorProfilerCallback::ModuleAttachedToAssembly</c></summary>
@@ -475,7 +509,7 @@ void CCodeCoverage::InstrumentMethod(ModuleID moduleId, Instrumentation::Method&
     }
 }
 
-HRESULT CCodeCoverage::InstrumentMethodWith(ModuleID moduleId, mdToken functionToken, InstructionList &instructions){
+HRESULT CCodeCoverage::InstrumentMethodWith(ModuleID moduleId, mdToken functionToken, InstructionList &instructions, const mdSignature localVarSigTok){
 
     IMAGE_COR_ILMETHOD* pMethodHeader = nullptr;
 	ULONG iMethodSize = 0;
@@ -497,41 +531,6 @@ HRESULT CCodeCoverage::InstrumentMethodWith(ModuleID moduleId, mdToken functionT
 
 	IMAGE_COR_ILMETHOD* pNewMethod = static_cast<IMAGE_COR_ILMETHOD*>(methodMalloc->Alloc(instumentedMethod.GetMethodSize()));
 	instumentedMethod.WriteMethod(pNewMethod);
-	COM_FAIL_MSG_RETURN_ERROR(m_profilerInfo->SetILFunctionBody(moduleId, functionToken, (LPCBYTE)pNewMethod),
-		_T("    ::InstrumentMethodWith(...) => SetILFunctionBody => 0x%X"));
-
-    return S_OK;
-}
-
-HRESULT CCodeCoverage::ReplaceMethodWith(ModuleID moduleId, mdToken functionToken, InstructionList &instructions, mdSignature localVarSigTok, unsigned minimumStackSize)
-{
-	ExceptionHandlerList exceptionHandlerList;
-	return ReplaceMethodWith(moduleId, functionToken, instructions, localVarSigTok, minimumStackSize, exceptionHandlerList);
-}
-
-HRESULT CCodeCoverage::ReplaceMethodWith(ModuleID moduleId, mdToken functionToken, InstructionList &instructions, mdSignature localVarSigTok, unsigned minimumStackSize, ExceptionHandlerList &exceptions)
-{
-	IMAGE_COR_ILMETHOD* pMethodHeader = nullptr;
-	ULONG iMethodSize = 0;
-	COM_FAIL_MSG_RETURN_ERROR(m_profilerInfo->GetILFunctionBody(moduleId, functionToken, (LPCBYTE*)&pMethodHeader, &iMethodSize),
-		_T("    ::ReplaceMethodWith(...) => GetILFunctionBody => 0x%X"));
-
-	Method method(pMethodHeader);
-	method.DeleteAllInstructions();
-	method.AppendInstructions(instructions);
-	method.SetMinimumStackSize(minimumStackSize);
-
-	if (exceptions.size() > 0)
-	{
-		method.AddExceptionHandlers(exceptions);
-	}
-
-	CComPtr<IMethodMalloc> methodMalloc;
-	COM_FAIL_MSG_RETURN_ERROR(m_profilerInfo->GetILFunctionBodyAllocator(moduleId, &methodMalloc),
-		_T("    ::ReplaceMethodWith(...) => GetILFunctionBodyAllocator=> 0x%X"));
-
-	IMAGE_COR_ILMETHOD* pNewMethod = static_cast<IMAGE_COR_ILMETHOD*>(methodMalloc->Alloc(method.GetMethodSize()));
-	method.WriteMethod(pNewMethod);
 
 	if (localVarSigTok != mdSignatureNil)
 	{
@@ -540,9 +539,9 @@ HRESULT CCodeCoverage::ReplaceMethodWith(ModuleID moduleId, mdToken functionToke
 	}
 
 	COM_FAIL_MSG_RETURN_ERROR(m_profilerInfo->SetILFunctionBody(moduleId, functionToken, (LPCBYTE)pNewMethod),
-		_T("    ::ReplaceMethodWith(...) => SetILFunctionBody => 0x%X"));
+		_T("    ::InstrumentMethodWith(...) => SetILFunctionBody => 0x%X"));
 
-	return S_OK;
+    return S_OK;
 }
 
 int CCodeCoverage::getSendVisitPointsTimerInterval()

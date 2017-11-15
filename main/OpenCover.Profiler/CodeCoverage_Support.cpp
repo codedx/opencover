@@ -2,8 +2,6 @@
 #include "CodeCoverage.h"
 
 #include "dllmain.h"
-
-#include "Method.h"
 #include "ProfilerInfo.h"
 
 #define TESTPLATFORM_UTILITIES_ASSEMBLY L"Microsoft.VisualStudio.TestPlatform.Utilities"

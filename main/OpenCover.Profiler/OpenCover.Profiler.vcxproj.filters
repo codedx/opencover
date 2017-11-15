@@ -20,6 +20,12 @@
     <Filter Include="Instrumentation">
       <UniqueIdentifier>{5ba569a2-781a-4cdf-94d9-9cf0684f2ddc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Context">
+      <UniqueIdentifier>{6d5920b3-b28a-497d-8977-894b8cf494a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Injection">
+      <UniqueIdentifier>{f51eb60a-c824-478b-a9e6-25419caea598}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -58,6 +64,9 @@
     <ClCompile Include="ExceptionHandler.cpp">
       <Filter>Instrumentation</Filter>
     </ClCompile>
+    <ClInclude Include="MethodBuffer.h">
+      <Filter>Instrumentation</Filter>
+    </ClInclude>
     <ClCompile Include="SharedMemory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -84,6 +93,21 @@
     </ClCompile>
     <ClCompile Include="Timer.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AssemblyRegistry.cpp">
+      <Filter>Injection</Filter>
+    </ClCompile>
+    <ClCompile Include="InjectedType.cpp">
+      <Filter>Injection</Filter>
+    </ClCompile>
+    <ClCompile Include="PublicKeyTokenCreator.cpp">
+      <Filter>Injection</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceContainerBase.cpp">
+      <Filter>Context</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceContainerCallContext.cpp">
+      <Filter>Context</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -123,9 +147,6 @@
     <ClInclude Include="ExceptionHandler.h">
       <Filter>Instrumentation</Filter>
     </ClInclude>
-    <ClInclude Include="MethodBuffer.h">
-      <Filter>Instrumentation</Filter>
-    </ClInclude>
     <ClInclude Include="ProfileBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -155,6 +176,21 @@
     </ClInclude>
     <ClInclude Include="Timer.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AssemblyRegistry.h">
+      <Filter>Injection</Filter>
+    </ClInclude>
+    <ClInclude Include="InjectedType.h">
+      <Filter>Injection</Filter>
+    </ClInclude>
+    <ClInclude Include="PublicKeyTokenCreator.h">
+      <Filter>Injection</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceContainerBase.h">
+      <Filter>Context</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceContainerCallContext.h">
+      <Filter>Context</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

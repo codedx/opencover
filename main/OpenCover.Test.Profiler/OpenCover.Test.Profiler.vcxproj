@@ -105,7 +105,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>TEST_FRAMEWORK;WIN32;_WINDOWS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_VARIADIC_MAX=10</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\tools\gmock-1.7.0;..\..\tools\gmock-1.7.0\include;..\..\tools\gmock-1.7.0\gtest;..\..\tools\gmock-1.7.0\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\tools\gmock-1.7.0;..\..\tools\gmock-1.7.0\include;..\..\tools\gmock-1.7.0\gtest;..\..\tools\gmock-1.7.0\gtest\include;..\OpenCover.Profiler;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -125,7 +125,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>TEST_FRAMEWORK;WIN32;_WINDOWS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_VARIADIC_MAX=10</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\tools\gmock-1.7.0;..\..\tools\gmock-1.7.0\include;..\..\tools\gmock-1.7.0\gtest;..\..\tools\gmock-1.7.0\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\tools\gmock-1.7.0;..\..\tools\gmock-1.7.0\include;..\..\tools\gmock-1.7.0\gtest;..\..\tools\gmock-1.7.0\gtest\include;..\OpenCover.Profiler;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -147,7 +147,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>TEST_FRAMEWORK;WIN32;_WINDOWS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_VARIADIC_MAX=10</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\tools\gmock-1.7.0;..\..\tools\gmock-1.7.0\include;..\..\tools\gmock-1.7.0\gtest;..\..\tools\gmock-1.7.0\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\tools\gmock-1.7.0;..\..\tools\gmock-1.7.0\include;..\..\tools\gmock-1.7.0\gtest;..\..\tools\gmock-1.7.0\gtest\include;..\OpenCover.Profiler;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -168,7 +168,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>TEST_FRAMEWORK;WIN32;_WINDOWS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_VARIADIC_MAX=10</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\tools\gmock-1.7.0;..\..\tools\gmock-1.7.0\include;..\..\tools\gmock-1.7.0\gtest;..\..\tools\gmock-1.7.0\gtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\tools\gmock-1.7.0;..\..\tools\gmock-1.7.0\include;..\..\tools\gmock-1.7.0\gtest;..\..\tools\gmock-1.7.0\gtest\include;..\OpenCover.Profiler;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -181,10 +181,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="MockICorProfilerInfo.h" />
+    <ClInclude Include="MockIMetaDataAssemblyImport.h" />
+    <ClInclude Include="MockIMetaDataImport.h" />
+    <ClInclude Include="MockIMethodMalloc.h" />
     <ClInclude Include="MockProfiler.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TestProfiler.h" />
+    <ClInclude Include="InjectedTypeTestFixture.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\OpenCover.Profiler\CoverageInstrumentation.cpp" />
@@ -193,9 +198,17 @@
     <ClCompile Include="..\OpenCover.Profiler\Method.cpp" />
     <ClCompile Include="..\OpenCover.Profiler\Operations.cpp" />
     <ClCompile Include="..\OpenCover.Profiler\Timer.cpp" />
+    <ClCompile Include="..\OpenCover.Profiler\InjectedType.cpp" />
+    <ClCompile Include="..\OpenCover.Profiler\TraceContainerBase.cpp" />
+    <ClCompile Include="..\OpenCover.Profiler\TraceContainerCallContext.cpp" />
+    <ClCompile Include="..\OpenCover.Profiler\AssemblyRegistry.cpp" />
+    <ClCompile Include="..\OpenCover.Profiler\PublicKeyTokenCreator.cpp" />
+    <ClCompile Include="AssemblyRegistryTest.cpp" />
+    <ClCompile Include="InjectedTypeTest.cpp" />
     <ClCompile Include="InstrumentationTest.cpp" />
     <ClCompile Include="ProfilerBaseTest.cpp" />
     <ClCompile Include="ProfilerInstantiationTest.cpp" />
+    <ClCompile Include="PublicKeyTokenCreatorTest.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -203,6 +216,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="TimerTest.cpp" />
+    <ClCompile Include="TraceContainerBaseTest.cpp" />
+    <ClCompile Include="TraceContainerCallContextTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

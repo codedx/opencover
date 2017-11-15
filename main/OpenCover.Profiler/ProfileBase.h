@@ -56,6 +56,20 @@ protected:
 		HRESULT hr = callA();
 		return hr != S_OK ? hr : callBIfAReturnS_OK();
 	}
+
+	template<class A, class B, class C>
+	static HRESULT ChainCall(A callA, B callBIfAReturnS_OK, C callCIfBReturnS_OK)
+	{
+		HRESULT hr = ChainCall(callA, callBIfAReturnS_OK);
+		return hr != S_OK ? hr : callCIfBReturnS_OK();
+	}
+
+	template<class A, class B, class C, class D>
+	static HRESULT ChainCall(A callA, B callBIfAReturnS_OK, C callCIfBReturnS_OK, D callDIfCReturnS_OK)
+	{
+		HRESULT hr = ChainCall(callA, callBIfAReturnS_OK, callCIfBReturnS_OK);
+		return hr != S_OK ? hr : callDIfCReturnS_OK();
+	}
 	
 	template<class P, class CCP, class CLP>
 	static HRESULT ChainProfiler(P profiler, CCP callChainedProfiler, CLP callLocalProfilerIfS_OK)

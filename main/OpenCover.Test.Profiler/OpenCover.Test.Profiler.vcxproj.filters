@@ -19,6 +19,12 @@
     <Filter Include="Source Files\Profiler">
       <UniqueIdentifier>{875fbc0e-9ba2-4a3c-8f78-b456700629f2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Injection">
+      <UniqueIdentifier>{a0bcd134-ad82-43f9-a160-0137dfe9ac4a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Context">
+      <UniqueIdentifier>{449387d5-e97a-4922-b342-0a2b988101d8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -31,6 +37,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MockProfiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MockICorProfilerInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MockIMetaDataAssemblyImport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MockIMetaDataImport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InjectedTypeTestFixture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MockIMethodMalloc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -70,6 +91,36 @@
     </ClCompile>
     <ClCompile Include="..\OpenCover.Profiler\Timer.cpp">
       <Filter>Source Files\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenCover.Profiler\PublicKeyTokenCreator.cpp">
+      <Filter>Source Files\Injection</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenCover.Profiler\AssemblyRegistry.cpp">
+      <Filter>Source Files\Injection</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenCover.Profiler\InjectedType.cpp">
+      <Filter>Source Files\Injection</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenCover.Profiler\TraceContainerBase.cpp">
+      <Filter>Source Files\Context</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenCover.Profiler\TraceContainerCallContext.cpp">
+      <Filter>Source Files\Context</Filter>
+    </ClCompile>
+    <ClCompile Include="PublicKeyTokenCreatorTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InjectedTypeTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AssemblyRegistryTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceContainerBaseTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceContainerCallContextTest.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,8 @@
 #include "stdafx.h"
-#include "..\OpenCover.Profiler\Method.h"
+
 #include <memory>
+
+#include "Method.h"
 
 // NOTE: Using pseudo IL code to exercise the code and is not necessarily runnable IL
 using namespace Instrumentation;

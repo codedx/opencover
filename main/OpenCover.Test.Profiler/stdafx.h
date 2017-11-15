@@ -5,6 +5,8 @@
 
 #pragma once
 
+
+
 #include "targetver.h"
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -17,6 +19,11 @@
 
 #include <stdio.h>
 #include <tchar.h>
+
+#pragma warning(push)
+#pragma warning( disable: 4996 ) // enable SetArrayArgument usage, which calls std::copy
+#include <xutility>
+#pragma warning(pop)
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS      // some CString constructors will be explicit
 
