@@ -31,21 +31,31 @@ namespace Injection
 
 	bool AssemblyRegistry::FindMaxAssemblyVersion(const std::wstring& name, AssemblyVersion& assemblyVersion) const
 	{
+		AssemblyReference assemblyReference;
+		if (!FindMaxAssemblyVersion(name, assemblyReference))
+		{
+			return false;
+		}
+		assemblyVersion = assemblyReference.version;
+		return true;
+	}
+
+	bool AssemblyRegistry::FindMaxAssemblyVersion(const std::wstring& name, AssemblyReference& assemblyReference) const
+	{
 		std::vector<AssemblyReference> referencedAssemblies;
 		if (!FillAssembliesByName(name, referencedAssemblies))
 		{
 			return false;
 		}
 
-		std::vector<AssemblyVersion> assemblyVersions;
-		for (auto iter = referencedAssemblies.begin(); iter != referencedAssemblies.end(); ++iter)
+		auto& reference = referencedAssemblies[0];
+		for (auto iter : referencedAssemblies)
 		{
-			assemblyVersions.push_back(iter->version);
+			if (reference.version >= iter.version) continue;
+			reference = iter;
 		}
 
-		const auto maxElement = max_element(assemblyVersions.begin(), assemblyVersions.end());
-
-		assemblyVersion = *maxElement;
+		assemblyReference = reference;
 		return true;
 	}
 

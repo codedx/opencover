@@ -46,7 +46,9 @@ namespace Injection
 
 		HRESULT GetMetaDataImport(const ModuleID moduleId, ATL::CComPtr<IMetaDataImport>& metaDataImport) const;
 		HRESULT GetMetaDataEmit(const ModuleID moduleId, ATL::CComPtr<IMetaDataEmit>& metaDataEmit) const;
+		HRESULT GetMetaDataAssemblyEmit(const ModuleID moduleId, ATL::CComPtr<IMetaDataAssemblyEmit>& metaDataAssemblyEmit) const;
 
+		HRESULT DefineAssemblyMaxVersionRef(const ModuleID moduleId, LPCWSTR assemblyName, mdModuleRef* moduleRef) const;
 		bool HasTypeDef(const ModuleID moduleId, const LPCWSTR typeDefName) const;
 
 		HRESULT ReplaceMethodWith(const ModuleID moduleId, const mdToken functionToken, Instrumentation::InstructionList &instructions, const mdSignature localVarSigTok = mdSignatureNil, const unsigned minimumStackSize = 8) const;

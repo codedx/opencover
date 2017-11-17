@@ -109,6 +109,12 @@
     <ClCompile Include="TraceContainerCallContext.cpp">
       <Filter>Context</Filter>
     </ClCompile>
+    <ClCompile Include="HttpApplication.cpp">
+      <Filter>Context</Filter>
+    </ClCompile>
+    <ClCompile Include="CodeCoverage_Trace.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -190,6 +196,9 @@
       <Filter>Context</Filter>
     </ClInclude>
     <ClInclude Include="TraceContainerCallContext.h">
+      <Filter>Context</Filter>
+    </ClInclude>
+    <ClInclude Include="HttpApplication.h">
       <Filter>Context</Filter>
     </ClInclude>
   </ItemGroup>

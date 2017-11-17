@@ -26,7 +26,9 @@
 #define DNCORLIB_NAME L"System.Private.CoreLib"
 
 #include "CoverageInstrumentation.h"
+#include "TraceContainerBase.h"
 #include "TraceContainerCallContext.h"
+#include "HttpApplication.h"
 
 typedef void(__fastcall *ipvc)(ULONG, ULONGLONG, ULONGLONG);
 typedef void(__fastcall *ipv)(ULONG);
@@ -170,13 +172,13 @@ private:
 	std::wstring cuckoo_module_;
 
 	HRESULT RegisterTraceTypes(ModuleID moduleId);
-
-	HRESULT AddSafeCuckooBodyWithTraceContainer(ModuleID moduleId);
-	HRESULT AddSafeCuckooBodyWithoutTraceContainer(ModuleID moduleId);
+	HRESULT RegisterInjectedType(ModuleID moduleId, Injection::InjectedType& type);
+	HRESULT AddTraceSafeCuckooBody(const ModuleID moduleId);
 
 	std::shared_ptr<Injection::AssemblyRegistry> m_assemblyRegistry;
 	std::shared_ptr<Context::TraceContainerBase> m_traceContainerBase;
 	std::unique_ptr<Context::TraceContainerCallContext> m_traceContainerCallContext;
+	std::unique_ptr<Context::HttpApplication> m_httpApplication;
 
 private:
 	HMODULE chained_module_;

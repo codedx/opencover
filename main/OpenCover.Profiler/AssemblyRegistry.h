@@ -88,6 +88,7 @@ namespace Injection
 		bool FillAssembliesByName(const std::wstring& name, std::vector<AssemblyReference>& referencedAssemblies) const;
 
 		bool FindMaxAssemblyVersion(const std::wstring& name, AssemblyVersion& assemblyVersion) const;
+		bool FindMaxAssemblyVersion(const std::wstring& name, AssemblyReference& assemblyReference) const;
 
 		HRESULT RecordAssemblyMetadataForModule(const ModuleID moduleId);
 

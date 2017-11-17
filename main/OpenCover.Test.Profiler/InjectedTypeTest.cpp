@@ -20,6 +20,7 @@ protected:
 
 	void SetUp() override
 	{
+		InjectedTypeTestFixture::SetUp();
 	}
 
 	void TearDown() override
@@ -48,6 +49,7 @@ protected:
 	FRIEND_TEST(InjectedTypeTest, CanReplaceBasicMethod);
 	FRIEND_TEST(InjectedTypeTest, CanReplaceMethodWithLocalVariablesAndCustomStackSize);
 	FRIEND_TEST(InjectedTypeTest, CanReplaceMethodWithExceptionHandler);
+	FRIEND_TEST(InjectedTypeTest, CanDefineAssemblyMaxVersionRef);
 };
 
 TEST_F(InjectedTypeTest, DoesNotCallRegisterTypeIfTypeShouldNotBeRegisteredInModule)
@@ -319,4 +321,65 @@ TEST_F(InjectedTypeTest, CanReplaceMethodWithExceptionHandler)
 	ASSERT_EQ(1, *(reinterpret_cast<int*>(const_cast<LPBYTE>(methodBody + 36)))); // Handler Begin
 	ASSERT_EQ(1, *(reinterpret_cast<int*>(const_cast<LPBYTE>(methodBody + 40)))); // Handler Offset
 	ASSERT_EQ(0x0100001E, *(reinterpret_cast<int*>(const_cast<LPBYTE>(methodBody) + 44))); // Token
+}
+
+TEST_F(InjectedTypeTest, CanDefineAssemblyMaxVersionRef)
+{
+	auto publicKeyTokenSize = 8;
+	BYTE publicKeyToken[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+	auto assemblyNameSize = 10;
+	WCHAR assemblyName[2];
+	assemblyName[0] = 'A';
+	assemblyName[1] = NULL;
+
+	ASSEMBLYMETADATA metadata1;
+	metadata1.usMajorVersion = 1;
+	metadata1.usMinorVersion = 0;
+	metadata1.usBuildNumber = 6;
+	metadata1.usRevisionNumber = 7;
+
+	ASSEMBLYMETADATA metadata2;
+	metadata2.usMajorVersion = 1;
+	metadata2.usMinorVersion = 2;
+	metadata2.usBuildNumber = 3;
+	metadata2.usRevisionNumber = 4;
+
+	MockInjectedType injectedType(profilerInfoPtr, assemblyRegistry);
+
+	EXPECT_CALL(metaDataAssemblyImport, GetAssemblyProps(_, _, _, _, _, _, _, _, _))
+		.WillOnce(DoAll(
+			SetArgPointee<1>(&publicKeyToken),
+			SetArgPointee<2>(publicKeyTokenSize),
+			SetArgPointee<4>(*assemblyName),
+			SetArgPointee<6>(assemblyNameSize),
+			SetArgPointee<7>(metadata1),
+			Return(S_OK)))
+		.WillOnce(DoAll(
+			SetArgPointee<1>(&publicKeyToken),
+			SetArgPointee<2>(publicKeyTokenSize),
+			SetArgPointee<4>(*assemblyName),
+			SetArgPointee<6>(assemblyNameSize),
+			SetArgPointee<7>(metadata2),
+			Return(S_OK)));
+
+	EXPECT_CALL(metaDataAssemblyImport, EnumAssemblyRefs(_, _, _, _))
+		.WillRepeatedly(Return(S_FALSE));
+
+	ASSERT_EQ(assemblyRegistry->RecordAssemblyMetadataForModule(1), S_OK);
+	ASSERT_EQ(assemblyRegistry->RecordAssemblyMetadataForModule(1), S_OK);
+
+	ASSEMBLYMETADATA metadata;
+	EXPECT_CALL(metaDataAssemblyEmit, DefineAssemblyRef(_, _, _, _, _, _, _, _))
+		.WillOnce(DoAll(
+			SaveArgPointee<3>(&metadata),
+			Return(S_OK)));
+			
+	mdModuleRef moduleRef;
+	ASSERT_EQ(S_OK, injectedType.DefineAssemblyMaxVersionRef(1, assemblyName, &moduleRef));
+
+	ASSERT_EQ(1, metadata.usMajorVersion);
+	ASSERT_EQ(2, metadata.usMinorVersion);
+	ASSERT_EQ(3, metadata.usBuildNumber);
+	ASSERT_EQ(4, metadata.usRevisionNumber);
 }

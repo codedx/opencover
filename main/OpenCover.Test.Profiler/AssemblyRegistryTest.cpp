@@ -77,8 +77,12 @@ protected:
 
 		AssemblyVersion assemblyVersion;
 		ASSERT_TRUE(assemblyRegistry.FindMaxAssemblyVersion(assemblyName, assemblyVersion));
-
 		AssertEqual(assemblyVersion,
+			assertMajorVersion, assertMinorVersion, assertBuildNumber, assertRevisionNumber);
+
+		AssemblyReference assemblyReference;
+		ASSERT_TRUE(assemblyRegistry.FindMaxAssemblyVersion(assemblyName, assemblyReference));
+		AssertEqual(assemblyReference.version,
 			assertMajorVersion, assertMinorVersion, assertBuildNumber, assertRevisionNumber);
 	}
 
@@ -318,15 +322,17 @@ TEST_F(AssemblyRegistryTest, CanFindMaxRevisionNumberForTwoVersionsOfOneModule)
 
 TEST_F(AssemblyRegistryTest, SearchingForUnknownAssemblyReturnsFalse)
 {
+	wchar_t* assemblyName = L"?";
 	vector<AssemblyReference> references;
-	ASSERT_FALSE(assemblyRegistry.FillAssembliesByName(L"?", references));
+	ASSERT_FALSE(assemblyRegistry.FillAssembliesByName(assemblyName, references));
 	ASSERT_EQ(0, references.size());
 }
 
 TEST_F(AssemblyRegistryTest, SearchingForUnknownAssemblyMaxVersionReturnsFalse)
 {
+	wchar_t* assemblyName = L"?";
 	AssemblyVersion assemblyVersion;
-	ASSERT_FALSE(assemblyRegistry.FindMaxAssemblyVersion(L"?", assemblyVersion));
+	ASSERT_FALSE(assemblyRegistry.FindMaxAssemblyVersion(assemblyName, assemblyVersion));
 }
 
 TEST_F(AssemblyRegistryTest, CanRecordAssemblyMetadataForOneModuleAndReference)
@@ -388,9 +394,10 @@ TEST_F(AssemblyRegistryTest, CanRecordAssemblyMetadataForOneModuleAndReference)
 	vector<AssemblyReference> references;
 	ASSERT_TRUE(assemblyRegistry.FillAssembliesByName(assemblyName2, references));
 
+	wchar_t* assemblyName = L"B";
 	ASSERT_EQ(references.size(), 1);
 	AssertEqual(references[0],
-		L"B",
+		assemblyName,
 		14, 13, 12, 11,
 		0, 1, 2, 3, 4, 5, 6, 7);
 }

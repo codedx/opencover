@@ -1013,11 +1013,14 @@ namespace OpenCover.Framework.Persistance
 
         private void LogContext(Guid contextId, HashSet<uint> relatedSpids)
         {
+            _logger.InfoFormat($"\n\nLogging context {contextId}...");
+
             foreach (var relatedSpid in relatedSpids)
             {
                 var startAndEndLineNumber = InstrumentationPoint.GetLineNumbers(relatedSpid);
-                if (startAndEndLineNumber.Item1 == null || startAndEndLineNumber.Item2 == null)
+                if (startAndEndLineNumber?.Item1 == null || startAndEndLineNumber.Item2 == null)
                 {
+                    _logger.InfoFormat($"\nLogContext => WARN: No line number data for SPID {relatedSpid}");
                     continue;
                 }
 
@@ -1038,10 +1041,10 @@ namespace OpenCover.Framework.Persistance
                 }
 
                 var logMessage = $"Class: {@class.FullName}\nFile: {filePath}\nCallName: {methodContainingSpid.CallName}\nFullName: {methodContainingSpid.FullName}\nMethodAttributes: {methodContainingSpid.MethodAttributes}\nStartLine: {startAndEndLineNumber.Item1.Value}\nEndLine: {startAndEndLineNumber.Item2.Value}";
-                _logger.InfoFormat($"LogContext => {logMessage}");
+                _logger.InfoFormat($"\nLogContext => {logMessage}");
             }
 
-            _logger.InfoFormat($"Context {contextId} has ended.");
+            _logger.InfoFormat($"\nContext {contextId} has ended.\n\n");
         }
     }
 }

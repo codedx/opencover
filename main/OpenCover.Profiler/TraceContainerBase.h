@@ -8,13 +8,15 @@ namespace Context
 	{
 	public:
 		TraceContainerBase(const ATL::CComPtr<ICorProfilerInfo>& profilerInfo,
-			const std::shared_ptr<Injection::AssemblyRegistry>& assemblyRegistry);
+			const std::shared_ptr<Injection::AssemblyRegistry>& assemblyRegistry,
+			const mdMethodDef cuckooSafeToken);
 
 		virtual ~TraceContainerBase();
 
 		mdTypeDef GetType() const { return m_typeDef; }
 
 		mdMethodDef GetCtorMethod() const { return m_ctorMethodDef; }
+		mdMethodDef GetOnContextEndMethodDef() const { return m_onContextEndMethodDef; }
 
 		mdFieldDef GetContextIdHighField() const { return m_contextIdHighFieldDef; }
 		mdFieldDef GetContextIdLowField() const { return m_contextIdLowFieldDef; }
@@ -27,10 +29,14 @@ namespace Context
 
 		HRESULT RegisterImplementationTypeDependencies(const ModuleID moduleId, ATL::CComPtr<IMetaDataImport>& metaDataImport);
 
-		HRESULT InjectCtorImplementation(const ModuleID moduleId, ATL::CComPtr<IMetaDataEmit>& metaDataEmit) const;
+		HRESULT InjectCtorImplementation(const ModuleID moduleId) const;
+		HRESULT InjectOnContextEndImplementation(const ModuleID moduleId) const;
+
+		mdMethodDef m_cuckooSafeToken;
 
 		mdTypeDef m_typeDef;
 		mdMethodDef m_ctorMethodDef;
+		mdMethodDef m_onContextEndMethodDef;
 
 		mdFieldDef m_contextIdHighFieldDef;
 		mdFieldDef m_contextIdLowFieldDef;

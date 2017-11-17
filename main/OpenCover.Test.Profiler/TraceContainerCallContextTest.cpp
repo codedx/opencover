@@ -18,9 +18,13 @@ class TraceContainerCallContextTest : public InjectedTypeTestFixture
 protected:
 	TraceContainerCallContextTest() :
 		InjectedTypeTestFixture(),
-		traceContainerBase(make_shared<TraceContainerBase>(profilerInfoPtr, assemblyRegistry)),
-		metaDataAssemblyImport()
+		traceContainerBase(make_shared<TraceContainerBase>(profilerInfoPtr, assemblyRegistry, 0x12345678))
 	{
+	}
+
+	void SetUp() override
+	{
+		InjectedTypeTestFixture::SetUp();
 	}
 
 	void SetUpAssemblyRegistry(const USHORT majorVersion, const USHORT minorVersion)
@@ -51,7 +55,6 @@ protected:
 	}
 
 	shared_ptr<TraceContainerBase> traceContainerBase;
-	MockIMetaDataAssemblyImport metaDataAssemblyImport;
 
 	const int shortCircuitRetVal = -0x123;
 
@@ -84,9 +87,6 @@ TEST_F(TraceContainerCallContextTest, RegisterTypeOccursForRelatedModule)
 		.WillOnce(Return(S_OK))
 		.WillOnce(Return(S_OK));
 
-	EXPECT_CALL(profilerInfo, GetModuleMetaData(_, _, IID_IMetaDataAssemblyImport, _))
-		.WillOnce(DoAll(SetArgPointee<3>(&metaDataAssemblyImport), Return(S_OK)));
-
 	SetUpAssemblyRegistry(4, 0);
 
 	assemblyRegistry->RecordAssemblyMetadataForModule(1);
@@ -103,9 +103,6 @@ TEST_F(TraceContainerCallContextTest, RegisterTypeSkippedForDotNet11)
 
 	EXPECT_CALL(metaDataImport, FindTypeDefByName(L"System.Object", _, _))
 		.WillOnce(Return(S_OK));
-
-	EXPECT_CALL(profilerInfo, GetModuleMetaData(_, _, IID_IMetaDataAssemblyImport, _))
-		.WillOnce(DoAll(SetArgPointee<3>(&metaDataAssemblyImport), Return(S_OK)));
 
 	SetUpAssemblyRegistry(1, 1);
 
@@ -126,9 +123,6 @@ TEST_F(TraceContainerCallContextTest, InjectTypeImplementationFailsIfRegisterTyp
 	EXPECT_CALL(metaDataImport, FindTypeDefByName(L"System.Object", _, _))
 		.WillOnce(Return(S_OK))
 		.WillOnce(Return(S_OK));
-
-	EXPECT_CALL(profilerInfo, GetModuleMetaData(_, _, IID_IMetaDataAssemblyImport, _))
-		.WillOnce(DoAll(SetArgPointee<3>(&metaDataAssemblyImport), Return(S_OK)));
 
 	SetUpAssemblyRegistry(4, 0);
 

@@ -1431,7 +1431,7 @@ namespace OpenCover.Test.Framework.Persistance
             Instance.SaveVisitData(data.ToArray());
 
             // assert
-            mockLog.Verify(x => x.InfoFormat($"Context {contextIdOne} has ended."), Times.Once());
+            mockLog.Verify(x => x.InfoFormat($"\nContext {contextIdOne} has ended.\n\n"), Times.Once());
             Assert.AreEqual(2, InstrumentationPoint.GetVisitCount(pt1.UniqueSequencePoint));
             Assert.AreEqual(3, InstrumentationPoint.GetVisitCount(pt2.UniqueSequencePoint));
             Assert.AreEqual(1, pt1.GetContextVisit(contextIdOne).VisitCount);

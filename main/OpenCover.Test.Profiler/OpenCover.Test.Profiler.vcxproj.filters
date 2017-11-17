@@ -54,6 +54,9 @@
     <ClInclude Include="MockIMethodMalloc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MockIMetaDataAssemblyEmit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

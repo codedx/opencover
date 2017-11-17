@@ -6,6 +6,8 @@ class MockProfiler :
 {
     // ICorProfilerCallback
 public:
+	virtual ~MockProfiler() {}
+
 	MOCK_METHOD1_WITH_CALLTYPE(STDMETHODCALLTYPE, Initialize, HRESULT(
 		/* [in] */ IUnknown *pICorProfilerInfoUnk));
 	MOCK_METHOD0_WITH_CALLTYPE(STDMETHODCALLTYPE, Shutdown, HRESULT());

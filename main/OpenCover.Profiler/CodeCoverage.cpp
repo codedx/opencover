@@ -68,7 +68,7 @@ void GetVersion(LPTSTR szVersionFile, DWORD *dwVersionHigh, DWORD *dwVersionLow)
 HRESULT CCodeCoverage::OpenCoverInitialise(IUnknown *pICorProfilerInfoUnk){
 	ATLTRACE(_T("::OpenCoverInitialise"));
 
-    OLECHAR szGuid[40]={0};
+	OLECHAR szGuid[40]={0};
     (void) ::StringFromGUID2(CLSID_CodeCoverage, szGuid, 40);
     RELTRACE(L"    ::Initialize(...) => CLSID == %s", szGuid);
     //::OutputDebugStringW(szGuid);
@@ -90,8 +90,6 @@ HRESULT CCodeCoverage::OpenCoverInitialise(IUnknown *pICorProfilerInfoUnk){
     if (m_profilerInfo == nullptr) return E_FAIL;
 
 	m_assemblyRegistry = std::make_shared<AssemblyRegistry>(m_profilerInfo);
-	m_traceContainerBase = std::make_shared<TraceContainerBase>(m_profilerInfo, m_assemblyRegistry);
-	m_traceContainerCallContext = std::make_unique<TraceContainerCallContext>(m_profilerInfo, m_assemblyRegistry, m_traceContainerBase);
 
     m_profilerInfo2 = pICorProfilerInfoUnk;
     if (m_profilerInfo2 != nullptr) ATLTRACE(_T("    ::Initialize (m_profilerInfo2 OK)"));
@@ -300,35 +298,12 @@ void CCodeCoverage::Resize(ULONG minSize) {
     }
 }
 
-HRESULT CCodeCoverage::RegisterTraceTypes(ModuleID moduleId)
-{
-	const auto typeRegisteredResult = m_traceContainerCallContext->RegisterTypeInModule(moduleId);
-	if (typeRegisteredResult == S_OK)
-	{
-		const auto injectTypeResult = m_traceContainerCallContext->InjectTypeImplementationInModule(moduleId);
-		if (SUCCEEDED(injectTypeResult))
-		{
-			return S_OK;
-		}
-		COM_FAIL_MSG_RETURN_ERROR(injectTypeResult, _T("Failed with HRESULT 0x%X to inject type implementation for module."));
-	}
-
-	if (typeRegisteredResult == S_FALSE)
-	{
-		return S_OK;
-	}
-	COM_FAIL_MSG_RETURN_ERROR(typeRegisteredResult, _T("Failed with HRESULT 0x%X to register type for module."));
-	
-	return S_OK;
-}
-
 HRESULT STDMETHODCALLTYPE CCodeCoverage::ModuleLoadFinished(
 	/* [in] */ ModuleID moduleId,
 	/* [in] */ HRESULT hrStatus)
 {
 	return ChainCall([&]() { return CProfilerBase::ModuleLoadFinished(moduleId, hrStatus); },
 		[&]() { return RegisterCuckoos(moduleId); },
-		[&]() { return m_assemblyRegistry->RecordAssemblyMetadataForModule(moduleId); },
 		[&]() { return RegisterTraceTypes(moduleId); });
 }
 

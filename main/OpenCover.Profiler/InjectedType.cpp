@@ -5,8 +5,10 @@
 
 #include "Method.h"
 #include "InjectedType.h"
+#include "AssemblyRegistry.h"
 
 using namespace Instrumentation;
+using namespace Injection;
 
 namespace Injection
 {
@@ -73,6 +75,43 @@ namespace Injection
 			ofRead | ofWrite, IID_IMetaDataEmit, reinterpret_cast<IUnknown**>(&metaDataEmit));
 
 		return SUCCEEDED(result) ? S_OK : result;
+	}
+
+	HRESULT InjectedType::GetMetaDataAssemblyEmit(const ModuleID moduleId, ATL::CComPtr<IMetaDataAssemblyEmit>& metaDataAssemblyEmit) const
+	{
+		auto result = m_profilerInfo->GetModuleMetaData(moduleId,
+			ofRead | ofWrite, IID_IMetaDataAssemblyEmit, reinterpret_cast<IUnknown**>(&metaDataAssemblyEmit));
+
+		return SUCCEEDED(result) ? S_OK : result;
+	}
+
+	HRESULT InjectedType::DefineAssemblyMaxVersionRef(const ModuleID moduleId, LPCWSTR assemblyName, mdModuleRef* moduleRef) const
+	{
+		ATL::CComPtr<IMetaDataAssemblyEmit> metaDataAssemblyEmit;
+		GUARD_FAILURE_HRESULT(GetMetaDataAssemblyEmit(moduleId, metaDataAssemblyEmit));
+
+		AssemblyReference mscorlibReference;
+		if (!m_assemblyRegistry->FindMaxAssemblyVersion(assemblyName, mscorlibReference))
+		{
+			return E_FAIL;
+		}
+
+		ASSEMBLYMETADATA mscorlibMetadata;
+		ZeroMemory(&mscorlibMetadata, sizeof(mscorlibMetadata));
+		mscorlibMetadata.usMajorVersion = mscorlibReference.version.majorVersion;
+		mscorlibMetadata.usMinorVersion = mscorlibReference.version.minorVersion;
+		mscorlibMetadata.usBuildNumber = mscorlibReference.version.buildNumber;
+		mscorlibMetadata.usRevisionNumber = mscorlibReference.version.revisionNumber;
+
+		const auto name = mscorlibReference.name.c_str();
+		return metaDataAssemblyEmit->DefineAssemblyRef(mscorlibReference.publicKeyToken,
+			sizeof(mscorlibReference.publicKeyToken),
+			name,
+			&mscorlibMetadata,
+			nullptr,
+			0,
+			0,
+			moduleRef);
 	}
 
 	bool InjectedType::HasTypeDef(const ModuleID moduleId, const LPCWSTR typeDefName) const

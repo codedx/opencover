@@ -5,6 +5,8 @@
 
 class MockIMetaDataAssemblyImport : public IMetaDataAssemblyImport {
 public:
+	virtual ~MockIMetaDataAssemblyImport() {}
+
 	MOCK_METHOD2_WITH_CALLTYPE(__stdcall, QueryInterface, HRESULT(const IID& riid, void** ppvObject));
 
 	MOCK_METHOD0_WITH_CALLTYPE(__stdcall, AddRef, ULONG(void));

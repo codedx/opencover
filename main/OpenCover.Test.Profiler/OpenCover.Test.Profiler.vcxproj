@@ -182,6 +182,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="MockICorProfilerInfo.h" />
+    <ClInclude Include="MockIMetaDataAssemblyEmit.h" />
     <ClInclude Include="MockIMetaDataAssemblyImport.h" />
     <ClInclude Include="MockIMetaDataImport.h" />
     <ClInclude Include="MockIMethodMalloc.h" />

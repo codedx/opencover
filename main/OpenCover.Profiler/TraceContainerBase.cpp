@@ -5,6 +5,7 @@
 
 #include "TraceContainerBase.h"
 #include "Instruction.h"
+#include "Messages.h"
 
 using namespace Instrumentation;
 using namespace Injection;
@@ -12,10 +13,13 @@ using namespace Injection;
 namespace Context
 {
 	TraceContainerBase::TraceContainerBase(const ATL::CComPtr<ICorProfilerInfo>& profilerInfo,
-		const std::shared_ptr<AssemblyRegistry>& assemblyRegistry) :
+		const std::shared_ptr<AssemblyRegistry>& assemblyRegistry,
+		const mdMethodDef cuckooSafeToken) :
 			InjectedType(profilerInfo, assemblyRegistry),
+			m_cuckooSafeToken(cuckooSafeToken),
 			m_typeDef(mdTypeDefNil),
 			m_ctorMethodDef(mdMethodDefNil),
+			m_onContextEndMethodDef(mdMethodDefNil),
 			m_contextIdHighFieldDef(mdFieldDefNil),
 			m_contextIdLowFieldDef(mdFieldDefNil),
 			m_contextIdFieldDef(mdFieldDefNil),
@@ -138,6 +142,29 @@ namespace Context
 		auto sigCtorLocalVariablesLength = CorSigCompressAndCompactToken(m_guidTypeDef, sigCtorLocalVariables, 3, 4, sizeof(sigCtorLocalVariables));
 		GUARD_FAILURE_HRESULT(metaDataEmit->GetTokenFromSig(sigCtorLocalVariables, sigCtorLocalVariablesLength, &m_ctorLocalVariablesSignature));
 
+		mdTypeRef eventArgs;
+		GUARD_FAILURE_HRESULT(metaDataImport->FindTypeDefByName(L"System.EventArgs", mdTokenNil, &eventArgs));
+
+		COR_SIGNATURE sigOnContextEnd[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT,
+			0x2,
+			ELEMENT_TYPE_VOID,
+			ELEMENT_TYPE_OBJECT,
+			ELEMENT_TYPE_CLASS,
+			0x0,0x0 // compressed token
+		};
+		auto sigOnContextEndLength = CorSigCompressAndCompactToken(eventArgs, sigOnContextEnd, 5, 6, sizeof(sigOnContextEnd));
+
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMethod(m_typeDef,
+			L"OnContextEnd",
+			mdPublic | mdHideBySig | mdStatic,
+			sigOnContextEnd,
+			sigOnContextEndLength,
+			ulCodeRVA,
+			0,
+			&m_onContextEndMethodDef));
+
 		GUARD_FAILURE_HRESULT(RegisterImplementationTypeDependencies(moduleId, metaDataImport));
 
 		return S_OK;
@@ -145,10 +172,9 @@ namespace Context
 
 	HRESULT TraceContainerBase::InjectTypeImplementation(const ModuleID moduleId)
 	{
-		ATL::CComPtr<IMetaDataEmit> metaDataEmit;
-		GUARD_FAILURE_HRESULT(GetMetaDataEmit(moduleId, metaDataEmit));
-		GUARD_FAILURE_HRESULT(InjectCtorImplementation(moduleId, metaDataEmit));
-
+		GUARD_FAILURE_HRESULT(InjectCtorImplementation(moduleId));
+		GUARD_FAILURE_HRESULT(InjectOnContextEndImplementation(moduleId));
+		
 		return S_OK;
 	}
 
@@ -193,7 +219,7 @@ namespace Context
 		return S_OK;
 	}
 
-	HRESULT TraceContainerBase::InjectCtorImplementation(const ModuleID moduleId, ATL::CComPtr<IMetaDataEmit>& metaDataEmit) const
+	HRESULT TraceContainerBase::InjectCtorImplementation(const ModuleID moduleId) const
 	{
 		InstructionList instructions;
 
@@ -227,6 +253,20 @@ namespace Context
 		instructions.push_back(new Instruction(CEE_RET));
 
 		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_ctorMethodDef, instructions, m_ctorLocalVariablesSignature));
+
+		return S_OK;
+	}
+
+	HRESULT TraceContainerBase::InjectOnContextEndImplementation(const ModuleID moduleId) const
+	{
+		InstructionList instructions;
+
+		instructions.push_back(new Instruction(CEE_NOP));
+		instructions.push_back(new Instruction(CEE_LDC_I4, IT_VisitPointContextEnd));
+		instructions.push_back(new Instruction(CEE_CALL, m_cuckooSafeToken));
+		instructions.push_back(new Instruction(CEE_RET));
+
+		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_onContextEndMethodDef, instructions));
 
 		return S_OK;
 	}

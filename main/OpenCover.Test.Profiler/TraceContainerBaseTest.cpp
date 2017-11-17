@@ -14,6 +14,11 @@ using namespace std;
 class TraceContainerBaseTest : public InjectedTypeTestFixture 
 {
 protected:
+	void SetUp() override
+	{
+		InjectedTypeTestFixture::SetUp();
+	}
+
 	void SetUpGetModuleMetaData(const bool isSuccessCase)
 	{
 		if (isSuccessCase)
@@ -50,7 +55,7 @@ protected:
 
 TEST_F(TraceContainerBaseTest, RegisterTypeSkippedForUnrelatedModule)
 {
-	TraceContainerBase traceContainerBase(profilerInfoPtr, assemblyRegistry);
+	TraceContainerBase traceContainerBase(profilerInfoPtr, assemblyRegistry, 0x12345678);
 
 	SetUpGetModuleMetaData(true);
 	SetUpFindTypeDefByName(false);
@@ -60,7 +65,7 @@ TEST_F(TraceContainerBaseTest, RegisterTypeSkippedForUnrelatedModule)
 
 TEST_F(TraceContainerBaseTest, RegisterTypeOccursForRelatedModule)
 {
-	TraceContainerBase traceContainerBase(profilerInfoPtr, assemblyRegistry);
+	TraceContainerBase traceContainerBase(profilerInfoPtr, assemblyRegistry, 0x12345678);
 
 	SetUpGetModuleMetaData(false);
 	SetUpFindTypeDefByName(true);
@@ -70,7 +75,7 @@ TEST_F(TraceContainerBaseTest, RegisterTypeOccursForRelatedModule)
 
 TEST_F(TraceContainerBaseTest, InjectTypeImplementationFailsIfRegisterTypeFails)
 {
-	TraceContainerBase traceContainerBase(profilerInfoPtr, assemblyRegistry);
+	TraceContainerBase traceContainerBase(profilerInfoPtr, assemblyRegistry, 0x12345678);
 
 	SetUpGetModuleMetaData(false);
 	SetUpFindTypeDefByName(true);
@@ -81,6 +86,6 @@ TEST_F(TraceContainerBaseTest, InjectTypeImplementationFailsIfRegisterTypeFails)
 
 TEST_F(TraceContainerBaseTest, InjectTypeImplementationFailsIfRegisterTypeNotCalled)
 {
-	TraceContainerBase traceContainerBase(profilerInfoPtr, assemblyRegistry);
+	TraceContainerBase traceContainerBase(profilerInfoPtr, assemblyRegistry, 0x12345678);
 	ASSERT_EQ(E_ILLEGAL_METHOD_CALL, traceContainerBase.InjectTypeImplementationInModule(1));
 }
