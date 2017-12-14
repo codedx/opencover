@@ -91,7 +91,6 @@
     <Compile Include="Instrumentation\ClassInformation.cs" />
     <Compile Include="Instrumentation\Id\ClassIdentifier.cs" />
     <Compile Include="Instrumentation\Id\MethodIdentifier.cs" />
-    <Compile Include="Instrumentation\MethodAccess.cs" />
     <Compile Include="Instrumentation\MethodInformation.cs" />
     <Compile Include="Message\AgentOperationMode.cs" />
     <Compile Include="Message\BufferService.cs" />

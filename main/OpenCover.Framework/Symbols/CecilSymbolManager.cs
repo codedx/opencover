@@ -320,7 +320,6 @@ namespace OpenCover.Framework.Symbols
                 IsGetter = methodDefinition.IsGetter,
                 IsSetter = methodDefinition.IsSetter,
                 MetadataToken = methodDefinition.MetadataToken.ToInt32(),
-                MethodAttributes = methodDefinition.Attributes,
                 MethodSignature = MethodSignatureBuilder.CreateSignature(methodDefinition)
             };
 

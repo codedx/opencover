@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using CodePulse.Client.Agent;
-using CodePulse.Client.Config;
 using OpenCover.Framework.Communication;
 using OpenCover.Framework.Model;
 using OpenCover.Framework.Utility;
@@ -1053,7 +1051,7 @@ namespace OpenCover.Framework.Persistance
                     filePath = firstFile.FullPath;
                 }
 
-                var logMessage = $"Class: {@class.FullName}\nFile: {filePath}\nCallName: {methodContainingSpid.CallName}\nFullName: {methodContainingSpid.FullName}\nMethodAttributes: {methodContainingSpid.MethodAttributes}\nStartLine: {startAndEndLineNumber.Item1.Value}\nEndLine: {startAndEndLineNumber.Item2.Value}";
+                var logMessage = $"Class: {@class.FullName}\nFile: {filePath}\nCallName: {methodContainingSpid.CallName}\nFullName: {methodContainingSpid.FullName}\nStartLine: {startAndEndLineNumber.Item1.Value}\nEndLine: {startAndEndLineNumber.Item2.Value}";
                 _logger.InfoFormat($"\nLogContext => {logMessage}");
             }
 

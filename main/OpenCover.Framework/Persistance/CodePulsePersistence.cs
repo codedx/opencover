@@ -102,7 +102,6 @@ namespace OpenCover.Framework.Persistance
                 var endLineNumber = startAndEndLineNumber.Item2.Value;
 
                 _agent.TraceDataCollector.MethodEntry(@class.FullName, filePath,
-                    declaringMethod.MethodAttributes,
                     declaringMethod.CallName,
                     declaringMethod.MethodSignature,
                     startAndEndLineNumber.Item1.Value,

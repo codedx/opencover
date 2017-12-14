@@ -6,7 +6,6 @@
 using System;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
-using Mono.Cecil;
 
 namespace OpenCover.Framework.Model
 {
@@ -160,11 +159,6 @@ namespace OpenCover.Framework.Model
         /// </summary>
         [XmlIgnore]
         public Class DeclaringClass { get; set; }
-
-        /// <summary>
-        /// Attributes for method.
-        /// </summary>
-        public MethodAttributes MethodAttributes { get; set; }
 
         /// <summary>
         /// Ordered list of method parameter types.
