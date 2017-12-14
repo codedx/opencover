@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using CodePulse.Client.Trace;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using OpenCover.Framework.Model;
@@ -47,7 +48,9 @@ namespace OpenCover.Framework.Symbols
         private readonly ILog _logger;
         private readonly ITrackedMethodStrategyManager _trackedMethodStrategyManager;
         private AssemblyDefinition _sourceAssembly;
-        private readonly Dictionary<int, MethodDefinition> _methodMap = new Dictionary<int, MethodDefinition>(); 
+        private readonly Dictionary<int, MethodDefinition> _methodMap = new Dictionary<int, MethodDefinition>();
+
+        private static readonly IMethodSignatureBuilder MethodSignatureBuilder = new MethodSignatureBuilder();
 
         public CecilSymbolManager(ICommandLine commandLine, IFilter filter, ILog logger, ITrackedMethodStrategyManager trackedMethodStrategyManager)
         {
@@ -317,7 +320,8 @@ namespace OpenCover.Framework.Symbols
                 IsGetter = methodDefinition.IsGetter,
                 IsSetter = methodDefinition.IsSetter,
                 MetadataToken = methodDefinition.MetadataToken.ToInt32(),
-                MethodAttributes = methodDefinition.Attributes
+                MethodAttributes = methodDefinition.Attributes,
+                MethodSignature = MethodSignatureBuilder.CreateSignature(methodDefinition)
             };
 
             if (methodDefinition.SafeGetMethodBody() == null)

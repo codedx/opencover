@@ -19,6 +19,7 @@ using OpenCover.Framework.Persistance;
 using OpenCover.Framework.Utility;
 using log4net;
 using System.Management;
+using CodePulse.Client.Config;
 using OpenCover.Framework.Model;
 using File = System.IO.File;
 
@@ -51,14 +52,11 @@ namespace OpenCover.Console
                 var filter = BuildFilter(parser);
                 var perfCounter = CreatePerformanceCounter(parser);
 
-                if (!GetFullOutputFile(parser, out string outputFile)) 
-                    return returnCodeOffset + 1;
-
                 using (var container = new Bootstrapper(Logger))
                 {
-                    var persistance = new FilePersistance(parser, Logger);
+                    var persistance = new CodePulsePersistence(parser, Logger);
                     container.Initialise(filter, parser, persistance, perfCounter);
-                    if (!persistance.Initialise(outputFile, parser.MergeExistingOutputFile))
+                    if (!persistance.Initialize(new StaticAgentConfiguration(8765, "127.0.0.1", 5000, Logger)))
                         return returnCodeOffset + 1;
 
                     returnCode = RunWithContainer(parser, container, persistance);

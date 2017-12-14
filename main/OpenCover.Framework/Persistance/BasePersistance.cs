@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using CodePulse.Client.Agent;
+using CodePulse.Client.Config;
 using OpenCover.Framework.Communication;
 using OpenCover.Framework.Model;
 using OpenCover.Framework.Utility;
@@ -535,7 +537,7 @@ namespace OpenCover.Framework.Persistance
         /// <param name="functionToken"></param>
         /// <param name="class"></param>
         /// <returns></returns>
-        private Method GetMethod(string modulePath, int functionToken, out Class @class)
+        protected Method GetMethod(string modulePath, int functionToken, out Class @class)
         {
             @class = null;
             lock (Protection)
@@ -597,11 +599,12 @@ namespace OpenCover.Framework.Persistance
                     {
                         if (_contextSpidMap.TryGetValue(contextId, out HashSet<uint> relatedSpids))
                         {
-                            // for now, dump data about context to logger
-                            LogContext(contextId, relatedSpids);
+                            OnContextEnd(contextId, relatedSpids);
 
                             _contextSpidMap.Remove(contextId);
                         }
+                        
+
                         continue;
                     }
 
@@ -671,6 +674,16 @@ namespace OpenCover.Framework.Persistance
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Handles end of context represented by specified context identifier.
+        /// </summary>
+        /// <param name="contextId">Identifier for context that ended.</param>
+        /// <param name="relatedSpids">Collection of SPIDs related to context.</param>
+        protected virtual void OnContextEnd(Guid contextId, HashSet<uint> relatedSpids)
+        {
+            LogContext(contextId, relatedSpids);
         }
 
         private void TransformSequences() {

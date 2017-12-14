@@ -126,6 +126,7 @@
     <Compile Include="Model\TrackedMethod.cs" />
     <Compile Include="Persistance\BasePersistance.cs" />
     <Compile Include="ExcludeCoverageAttribute.cs" />
+    <Compile Include="Persistance\CodePulsePersistence.cs" />
     <Compile Include="Persistance\FilePersistance.cs" />
     <Compile Include="Filter.cs" />
     <Compile Include="ICommandLine.cs" />
@@ -176,6 +177,12 @@
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CodePulse.Client\CodePulse.Client.csproj">
+      <Project>{8AF8D48F-4ABC-48DD-8B62-91DB60632E4F}</Project>
+      <Name>CodePulse.Client</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" />

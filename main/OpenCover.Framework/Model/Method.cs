@@ -167,6 +167,12 @@ namespace OpenCover.Framework.Model
         public MethodAttributes MethodAttributes { get; set; }
 
         /// <summary>
+        /// Ordered list of method parameter types.
+        /// </summary>
+        [XmlIgnore]
+        public string MethodSignature { get; set; }
+
+        /// <summary>
         /// Mark an entity as skipped
         /// </summary>
         /// <param name="reason">Provide a reason</param>

@@ -152,6 +152,10 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CodePulse.Client\CodePulse.Client.csproj">
+      <Project>{8af8d48f-4abc-48dd-8b62-91db60632e4f}</Project>
+      <Name>CodePulse.Client</Name>
+    </ProjectReference>
     <ProjectReference Include="..\OpenCover.Framework\OpenCover.Framework.csproj">
       <Project>{C6F40A34-101B-4BAF-A2F4-6EA28A264F57}</Project>
       <Name>OpenCover.Framework</Name>
