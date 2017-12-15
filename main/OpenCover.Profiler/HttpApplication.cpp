@@ -16,10 +16,22 @@ namespace Context
 		m_onTraceContainerBeginRequestMethodDef(mdMethodDefNil),
 		m_onTraceContainerEndRequestMethodDef(mdMethodDefNil),
 		m_traceContainerGetCurrentRef(mdMemberRefNil),
-		m_addBeginRequestRef(mdMemberRefNil),
-		m_addEndRequestRef(mdMemberRefNil),
+		m_addBeginRequestDef(mdTokenNil),
+		m_addEndRequestDef(mdTokenNil),
 		m_eventHandlerCtorRef(mdMemberRefNil),
-		m_notifyContextEndRef(mdMemberRefNil)
+		m_traceContainerBaseNotifyContextEndRef(mdMemberRefNil),
+		m_contextIdKey(mdStringNil),
+		m_httpApplicationTypeDef(mdTypeDefNil),
+		m_httpApplicationGetContext(mdTokenNil),
+		m_guidTypeRef(mdTypeRefNil),
+		m_guidParseRef(mdMemberRefNil),
+		m_httpContextGetItems(mdTokenNil),
+		m_traceContainerBaseContextIdRef(mdMemberRefNil),
+		m_traceContainerBaseSetContextIdRef(mdMemberRefNil),
+		m_objectToStringRef(mdMemberRefNil),
+		m_dictionaryGetItem(mdMemberRefNil),
+		m_dictionarySetItem(mdMemberRefNil),
+		m_endRequestLocalVariablesSignature(mdSignatureNil)
 	{
 		
 	}
@@ -55,11 +67,10 @@ namespace Context
 		GUARD_FAILURE_HRESULT(GetMetaDataEmit(moduleId, metaDataEmit));
 
 		ULONG ulCodeRVA = 0;
-		auto httpApplication = mdTypeDefNil;
 		auto httpApplicationCtor = mdMethodDefNil;
 		GUARD_FAILURE_HRESULT(GetRVAFromKnownDefaultCtor(metaDataImport,
 			L"System.Web.HttpApplication",
-			&httpApplication,
+			&m_httpApplicationTypeDef,
 			&httpApplicationCtor,
 			&ulCodeRVA));
 
@@ -110,6 +121,9 @@ namespace Context
 
 		GUARD_FAILURE_HRESULT(RegisterImplementationTypeDependencies(moduleId, metaDataEmit, metaDataImport));
 			
+		auto traceContainerString = L"TraceContainer.Current.ContextId";
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineUserString(traceContainerString, static_cast<ULONG>(wcslen(traceContainerString)), &m_contextIdKey));
+
 		return S_OK;
 	}
 
@@ -137,7 +151,7 @@ namespace Context
 			ELEMENT_TYPE_VOID
 		};
 
-		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(traceContainerBaseRef, L"NotifyContextEnd", sigNotifyContextEnd, sizeof(sigNotifyContextEnd), &m_notifyContextEndRef));
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(traceContainerBaseRef, L"NotifyContextEnd", sigNotifyContextEnd, sizeof(sigNotifyContextEnd), &m_traceContainerBaseNotifyContextEndRef));
 
 		mdTypeRef traceContainerRef;
 		GUARD_FAILURE_HRESULT(metaDataEmit->DefineTypeRefByName(mscorlibRef, L"TraceContainer", &traceContainerRef));
@@ -176,8 +190,116 @@ namespace Context
 		};
 		auto sigEventHandlerLength = CorSigCompressAndCompactToken(eventHandlerRef, sigEventHandler, 4, 5, sizeof(sigEventHandler));
 
-		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(m_typeDef, L"add_EndRequest", sigEventHandler, sigEventHandlerLength, &m_addEndRequestRef));
-		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(m_typeDef, L"add_BeginRequest", sigEventHandler, sigEventHandlerLength, &m_addBeginRequestRef));
+		GUARD_FAILURE_HRESULT(metaDataImport->FindMember(m_typeDef, L"add_EndRequest", sigEventHandler, sigEventHandlerLength, &m_addEndRequestDef));
+		GUARD_FAILURE_HRESULT(metaDataImport->FindMember(m_typeDef, L"add_BeginRequest", sigEventHandler, sigEventHandlerLength, &m_addBeginRequestDef));
+
+		mdTypeDef httpContextTypeDef;
+		GUARD_FAILURE_HRESULT(metaDataImport->FindTypeDefByName(L"System.Web.HttpContext", mdTokenNil, &httpContextTypeDef));
+
+		COR_SIGNATURE sigHttpApplicationGetContext[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT | IMAGE_CEE_CS_CALLCONV_HASTHIS,
+			0x0,
+			ELEMENT_TYPE_CLASS,
+			0x0,0x0 // compressed token
+		};
+		auto sigHttpApplicationGetContextLength = CorSigCompressAndCompactToken(httpContextTypeDef, sigHttpApplicationGetContext, 3, 4, sizeof(sigHttpApplicationGetContext));
+
+		GUARD_FAILURE_HRESULT(metaDataImport->FindMember(m_httpApplicationTypeDef, L"get_Context", sigHttpApplicationGetContext, sigHttpApplicationGetContextLength, &m_httpApplicationGetContext));
+
+		mdTypeRef dictionaryTypeRef;
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineTypeRefByName(mscorlibRef, L"System.Collections.IDictionary", &dictionaryTypeRef));
+
+		COR_SIGNATURE sigHttpContextGetItems[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT | IMAGE_CEE_CS_CALLCONV_HASTHIS,
+			0x0,
+			ELEMENT_TYPE_CLASS,
+			0x0,0x0 // compressed token
+		};
+		auto sigHttpContextGetItemsLength = CorSigCompressAndCompactToken(dictionaryTypeRef, sigHttpContextGetItems, 3, 4, sizeof(sigHttpContextGetItems));
+		
+		GUARD_FAILURE_HRESULT(metaDataImport->FindMember(httpContextTypeDef, L"get_Items", sigHttpContextGetItems, sigHttpContextGetItemsLength, &m_httpContextGetItems));
+
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineTypeRefByName(mscorlibRef, L"System.Guid", &m_guidTypeRef));
+
+		COR_SIGNATURE sigContextIdField[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_FIELD,
+			ELEMENT_TYPE_VALUETYPE,
+			0x0,0x0 // compressed token
+		};
+		auto sigContextIdFieldLength = CorSigCompressAndCompactToken(m_guidTypeRef, sigContextIdField, 2, 3, sizeof(sigContextIdField));
+		
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(traceContainerBaseRef, L"_contextId", sigContextIdField, sigContextIdFieldLength, &m_traceContainerBaseContextIdRef));
+
+		mdTypeRef systemObjectRef;
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineTypeRefByName(mscorlibRef, L"System.Object", &systemObjectRef));
+
+		COR_SIGNATURE sigObjectToString[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT | IMAGE_CEE_CS_CALLCONV_HASTHIS,
+			0x0,
+			ELEMENT_TYPE_STRING
+		};
+		
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(systemObjectRef, L"ToString", sigObjectToString, sizeof(sigObjectToString), &m_objectToStringRef));
+
+		COR_SIGNATURE sigDictionarySetItem[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT | IMAGE_CEE_CS_CALLCONV_HASTHIS,
+			0x2,
+			ELEMENT_TYPE_VOID,
+			ELEMENT_TYPE_OBJECT,
+			ELEMENT_TYPE_OBJECT
+		};
+		
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(dictionaryTypeRef, L"set_Item", sigDictionarySetItem, sizeof(sigDictionarySetItem), &m_dictionarySetItem));
+		
+		COR_SIGNATURE sigHttpContextGetItem[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT | IMAGE_CEE_CS_CALLCONV_HASTHIS,
+			0x1,
+			ELEMENT_TYPE_OBJECT,
+			ELEMENT_TYPE_OBJECT
+		};
+
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(dictionaryTypeRef, L"get_Item", sigHttpContextGetItem, sizeof(sigHttpContextGetItem), &m_dictionaryGetItem));
+		
+		COR_SIGNATURE sigGuidParse[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT,
+			0x1,
+			ELEMENT_TYPE_VALUETYPE,
+			0x0,0x0, // compressed token
+			ELEMENT_TYPE_STRING
+		};
+		auto sigGuidParseLength = CorSigCompressAndCompactToken(m_guidTypeRef, sigGuidParse, 3, 4, sizeof(sigGuidParse));
+
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(m_guidTypeRef, L"Parse", sigGuidParse, sigGuidParseLength, &m_guidParseRef));
+
+		COR_SIGNATURE sigSetContextId[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT | IMAGE_CEE_CS_CALLCONV_HASTHIS,
+			0x1,
+			ELEMENT_TYPE_VOID,
+			ELEMENT_TYPE_VALUETYPE,
+			0x0,0x0, // compressed token
+		};
+		auto sigSetContextIdLength = CorSigCompressAndCompactToken(m_guidTypeRef, sigSetContextId, 4, 5, sizeof(sigSetContextId));
+
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(traceContainerBaseRef, L"SetContextId", sigSetContextId, sigSetContextIdLength, &m_traceContainerBaseSetContextIdRef));
+
+		COR_SIGNATURE sigSetContextIdLocalVariables[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_LOCAL_SIG,
+			0x1, // skipping CorSigCompressData (already one byte)
+			ELEMENT_TYPE_CLASS,
+			0x0,0x0 // TraceContainerBase
+		};
+		auto sigSetContextIdLocalVariablesLength = CorSigCompressAndCompactToken(traceContainerBaseRef, sigSetContextIdLocalVariables, 3, 4, sizeof(sigSetContextIdLocalVariables));
+
+		GUARD_FAILURE_HRESULT(metaDataEmit->GetTokenFromSig(sigSetContextIdLocalVariables, sigSetContextIdLocalVariablesLength, &m_endRequestLocalVariablesSignature));
 
 		return S_OK;
 	}
@@ -190,14 +312,14 @@ namespace Context
 		instructions.push_back(new Instruction(CEE_LDARG_0));
 		instructions.push_back(new Instruction(CEE_LDFTN, m_onTraceContainerBeginRequestMethodDef));
 		instructions.push_back(new Instruction(CEE_NEWOBJ, m_eventHandlerCtorRef));
-		instructions.push_back(new Instruction(CEE_CALL, m_addBeginRequestRef));
+		instructions.push_back(new Instruction(CEE_CALL, m_addBeginRequestDef));
 		instructions.push_back(new Instruction(CEE_NOP));
 
 		instructions.push_back(new Instruction(CEE_LDARG_0));
 		instructions.push_back(new Instruction(CEE_LDARG_0));
 		instructions.push_back(new Instruction(CEE_LDFTN, m_onTraceContainerEndRequestMethodDef));
 		instructions.push_back(new Instruction(CEE_NEWOBJ, m_eventHandlerCtorRef));
-		instructions.push_back(new Instruction(CEE_CALL, m_addEndRequestRef));
+		instructions.push_back(new Instruction(CEE_CALL, m_addEndRequestDef));
 		instructions.push_back(new Instruction(CEE_NOP));
 
 		instructions.push_back(new Instruction(CEE_RET));
@@ -211,6 +333,16 @@ namespace Context
 	{
 		InstructionList instructions;
 		instructions.push_back(new Instruction(CEE_NOP));
+		instructions.push_back(new Instruction(CEE_LDARG_0));
+		instructions.push_back(new Instruction(CEE_CALL, m_httpApplicationGetContext));
+		instructions.push_back(new Instruction(CEE_CALLVIRT, m_httpContextGetItems));
+		instructions.push_back(new Instruction(CEE_LDSTR, m_contextIdKey));
+		instructions.push_back(new Instruction(CEE_CALL, m_traceContainerGetCurrentRef));
+		instructions.push_back(new Instruction(CEE_LDFLDA, m_traceContainerBaseContextIdRef));
+		instructions.push_back(new Instruction(CEE_CONSTRAINED, m_guidTypeRef));
+		instructions.push_back(new Instruction(CEE_CALLVIRT, m_objectToStringRef));
+		instructions.push_back(new Instruction(CEE_CALLVIRT, m_dictionarySetItem));
+		instructions.push_back(new Instruction(CEE_NOP));
 		instructions.push_back(new Instruction(CEE_RET));
 
 		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_onTraceContainerBeginRequestMethodDef, instructions));
@@ -223,11 +355,24 @@ namespace Context
 		InstructionList instructions;
 		instructions.push_back(new Instruction(CEE_NOP));
 		instructions.push_back(new Instruction(CEE_CALL, m_traceContainerGetCurrentRef));
-		instructions.push_back(new Instruction(CEE_CALLVIRT, m_notifyContextEndRef));
+		instructions.push_back(new Instruction(CEE_STLOC_0));
+		instructions.push_back(new Instruction(CEE_LDLOC_0));
+		instructions.push_back(new Instruction(CEE_LDARG_0));
+		instructions.push_back(new Instruction(CEE_CALL, m_httpApplicationGetContext));
+		instructions.push_back(new Instruction(CEE_CALLVIRT, m_httpContextGetItems));
+		instructions.push_back(new Instruction(CEE_LDSTR, m_contextIdKey));
+		instructions.push_back(new Instruction(CEE_CALLVIRT, m_dictionaryGetItem));
+		instructions.push_back(new Instruction(CEE_CALLVIRT, m_objectToStringRef));
+		instructions.push_back(new Instruction(CEE_CALL, m_guidParseRef));
+		instructions.push_back(new Instruction(CEE_CALLVIRT, m_traceContainerBaseSetContextIdRef));
+		instructions.push_back(new Instruction(CEE_NOP));
+		instructions.push_back(new Instruction(CEE_LDLOC_0));
+		instructions.push_back(new Instruction(CEE_CALLVIRT, m_traceContainerBaseNotifyContextEndRef));
 		instructions.push_back(new Instruction(CEE_NOP));
 		instructions.push_back(new Instruction(CEE_RET));
 
-		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_onTraceContainerEndRequestMethodDef, instructions));
+		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_onTraceContainerEndRequestMethodDef, instructions, m_endRequestLocalVariablesSignature));
+		
 
 		return S_OK;
 	}

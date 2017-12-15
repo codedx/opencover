@@ -31,10 +31,32 @@ namespace Context
 		mdMethodDef m_onTraceContainerBeginRequestMethodDef;
 		mdMethodDef m_onTraceContainerEndRequestMethodDef;
 
+		mdToken m_addBeginRequestDef;
+		mdToken m_addEndRequestDef;
+
 		mdMemberRef m_traceContainerGetCurrentRef;
-		mdMemberRef m_addBeginRequestRef;
-		mdMemberRef m_addEndRequestRef;
+		
 		mdMemberRef m_eventHandlerCtorRef;
-		mdMemberRef m_notifyContextEndRef;
+		
+		mdMemberRef m_traceContainerBaseContextIdRef;
+		mdMemberRef m_traceContainerBaseSetContextIdRef;
+		mdMemberRef m_traceContainerBaseNotifyContextEndRef;
+
+		mdTypeDef m_httpApplicationTypeDef;
+		mdToken m_httpApplicationGetContext;
+
+		mdToken m_httpContextGetItems;
+
+		mdTypeRef m_guidTypeRef;
+		mdMemberRef m_guidParseRef;
+
+		mdSignature m_endRequestLocalVariablesSignature;
+
+		mdString m_contextIdKey;
+
+		mdMemberRef m_objectToStringRef;
+
+		mdMemberRef m_dictionarySetItem;
+		mdMemberRef m_dictionaryGetItem;
 	};
 }
