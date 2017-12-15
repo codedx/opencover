@@ -16,7 +16,6 @@ namespace Context
 		mdTypeDef GetType() const { return m_typeDef; }
 
 		mdMethodDef GetCtorMethod() const { return m_ctorMethodDef; }
-		mdMethodDef GetOnContextEndMethodDef() const { return m_onContextEndMethodDef; }
 
 		mdFieldDef GetContextIdHighField() const { return m_contextIdHighFieldDef; }
 		mdFieldDef GetContextIdLowField() const { return m_contextIdLowFieldDef; }
@@ -30,13 +29,15 @@ namespace Context
 		HRESULT RegisterImplementationTypeDependencies(const ModuleID moduleId, ATL::CComPtr<IMetaDataImport>& metaDataImport);
 
 		HRESULT InjectCtorImplementation(const ModuleID moduleId) const;
-		HRESULT InjectOnContextEndImplementation(const ModuleID moduleId) const;
+		HRESULT InjectNotifyContextEndImplementation(const ModuleID moduleId) const;
+		HRESULT InjectSetContextIdImplementation(const ModuleID moduleId) const;
 
 		mdMethodDef m_cuckooSafeToken;
 
 		mdTypeDef m_typeDef;
 		mdMethodDef m_ctorMethodDef;
-		mdMethodDef m_onContextEndMethodDef;
+		mdMethodDef m_notifyContextEndMethodDef;
+		mdMethodDef m_setContextIdMethodDef;
 
 		mdFieldDef m_contextIdHighFieldDef;
 		mdFieldDef m_contextIdLowFieldDef;
@@ -52,6 +53,6 @@ namespace Context
 
 		mdMethodDef m_bitConverterToUInt64MethodDef;
 
-		mdSignature m_ctorLocalVariablesSignature;
+		mdSignature m_setContextIdLocalVariablesSignature;
 	};
 }

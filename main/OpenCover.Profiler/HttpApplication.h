@@ -1,6 +1,5 @@
 #pragma once
 #include "InjectedType.h"
-#include "TraceContainerBase.h"
 
 namespace Context
 {
@@ -9,8 +8,7 @@ namespace Context
 	{
 	public:
 		HttpApplication(const ATL::CComPtr<ICorProfilerInfo>& profilerInfo,
-			const std::shared_ptr<Injection::AssemblyRegistry>& assemblyRegistry,
-			const std::shared_ptr<TraceContainerBase>& traceContainerBase);
+			const std::shared_ptr<Injection::AssemblyRegistry>& assemblyRegistry);
 
 		virtual ~HttpApplication()
 		{
@@ -25,12 +23,18 @@ namespace Context
 		HRESULT RegisterImplementationTypeDependencies(const ModuleID moduleId, ATL::CComPtr<IMetaDataEmit>& metaDataEmit, ATL::CComPtr<IMetaDataImport>& metaDataImport);
 
 		HRESULT InjectInitImplementation(const ModuleID moduleId) const;
+		HRESULT InjectOnTraceContainerBeginRequestImplementation(const ModuleID moduleId) const;
+		HRESULT InjectOnTraceContainerEndRequestImplementation(const ModuleID moduleId) const;
 
 		mdTypeDef m_typeDef;
 		mdMethodDef m_initMethodDef;
+		mdMethodDef m_onTraceContainerBeginRequestMethodDef;
+		mdMethodDef m_onTraceContainerEndRequestMethodDef;
 
+		mdMemberRef m_traceContainerGetCurrentRef;
+		mdMemberRef m_addBeginRequestRef;
 		mdMemberRef m_addEndRequestRef;
 		mdMemberRef m_eventHandlerCtorRef;
-		mdMemberRef m_onContextEndRef;
+		mdMemberRef m_notifyContextEndRef;
 	};
 }

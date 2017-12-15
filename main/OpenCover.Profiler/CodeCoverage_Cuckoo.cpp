@@ -138,7 +138,7 @@ HRESULT CCodeCoverage::RegisterCuckoos(ModuleID moduleId){
 
 		m_traceContainerBase = std::make_shared<Context::TraceContainerBase>(m_profilerInfo, m_assemblyRegistry, m_cuckooSafeToken);
 		m_traceContainerCallContext = std::make_unique<Context::TraceContainerCallContext>(m_profilerInfo, m_assemblyRegistry, m_traceContainerBase);
-		m_httpApplication = std::make_unique<Context::HttpApplication>(m_profilerInfo, m_assemblyRegistry, m_traceContainerBase);
+		m_httpApplication = std::make_unique<Context::HttpApplication>(m_profilerInfo, m_assemblyRegistry);
 
 		RELTRACE(_T("::ModuleLoadFinished(...) => Added methods to mscorlib"));
 	}

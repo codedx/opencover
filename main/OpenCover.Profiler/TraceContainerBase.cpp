@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include <tchar.h>
 
 #include "ReleaseTrace.h"
 
@@ -19,7 +18,8 @@ namespace Context
 			m_cuckooSafeToken(cuckooSafeToken),
 			m_typeDef(mdTypeDefNil),
 			m_ctorMethodDef(mdMethodDefNil),
-			m_onContextEndMethodDef(mdMethodDefNil),
+			m_notifyContextEndMethodDef(mdMethodDefNil),
+			m_setContextIdMethodDef(mdMethodDefNil),
 			m_contextIdHighFieldDef(mdFieldDefNil),
 			m_contextIdLowFieldDef(mdFieldDefNil),
 			m_contextIdFieldDef(mdFieldDefNil),
@@ -29,7 +29,7 @@ namespace Context
 			m_guidNewGuidMethodDef(mdMethodDefNil),
 			m_guidToByteArrayMethodDef(mdMethodDefNil),
 			m_bitConverterToUInt64MethodDef(mdMethodDefNil),
-			m_ctorLocalVariablesSignature(mdSignatureNil)
+			m_setContextIdLocalVariablesSignature(mdSignatureNil)
 	{
 	}
 
@@ -127,45 +127,54 @@ namespace Context
 			0,
 			&m_ctorMethodDef));
 
-		COR_SIGNATURE sigCtorLocalVariables[] =
+		COR_SIGNATURE sigNotifyContextEnd[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT | IMAGE_CEE_CS_CALLCONV_HASTHIS,
+			0x0,
+			ELEMENT_TYPE_VOID
+		};
+
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMethod(m_typeDef,
+			L"NotifyContextEnd",
+			mdPublic | mdHideBySig | mdReuseSlot,
+			sigNotifyContextEnd,
+			sizeof(sigNotifyContextEnd),
+			ulCodeRVA,
+			0,
+			&m_notifyContextEndMethodDef));
+
+		COR_SIGNATURE sigSetContextId[] =
+		{
+			IMAGE_CEE_CS_CALLCONV_DEFAULT | IMAGE_CEE_CS_CALLCONV_HASTHIS,
+			0x1,
+			ELEMENT_TYPE_VOID,
+			ELEMENT_TYPE_VALUETYPE,
+			0x0,0x0 // GUID Type (compressed token)
+		};
+
+		auto sigSetContextIdLength = CorSigCompressAndCompactToken(m_guidTypeDef, sigSetContextId, 4, 5, sizeof(sigSetContextId));
+		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMethod(m_typeDef,
+			L"SetContextId",
+			mdPublic | mdHideBySig | mdReuseSlot,
+			sigSetContextId,
+			sigSetContextIdLength,
+			ulCodeRVA,
+			0,
+			&m_setContextIdMethodDef));
+
+		GUARD_FAILURE_HRESULT(RegisterImplementationTypeDependencies(moduleId, metaDataImport));
+
+		COR_SIGNATURE sigSetContextIdLocalVariables[] =
 		{
 			IMAGE_CEE_CS_CALLCONV_LOCAL_SIG,
-			0x2, // skipping CorSigCompressData (already one byte)
-			ELEMENT_TYPE_VALUETYPE,
-			0x0,0x0, // GUID Type (compressed token)
+			0x1, // skipping CorSigCompressData (already one byte)
 			ELEMENT_TYPE_ARRAY,
 			ELEMENT_TYPE_U8, // Array Type
 			0x1, // Rank (compressed data) // skipping CorSigCompressData (already one byte)
 			0x0 // NumSizes (compressed data) // skipping CorSigCompressData (already one byte)
 		};
 
-		auto sigCtorLocalVariablesLength = CorSigCompressAndCompactToken(m_guidTypeDef, sigCtorLocalVariables, 3, 4, sizeof(sigCtorLocalVariables));
-		GUARD_FAILURE_HRESULT(metaDataEmit->GetTokenFromSig(sigCtorLocalVariables, sigCtorLocalVariablesLength, &m_ctorLocalVariablesSignature));
-
-		mdTypeRef eventArgs;
-		GUARD_FAILURE_HRESULT(metaDataImport->FindTypeDefByName(L"System.EventArgs", mdTokenNil, &eventArgs));
-
-		COR_SIGNATURE sigOnContextEnd[] =
-		{
-			IMAGE_CEE_CS_CALLCONV_DEFAULT,
-			0x2,
-			ELEMENT_TYPE_VOID,
-			ELEMENT_TYPE_OBJECT,
-			ELEMENT_TYPE_CLASS,
-			0x0,0x0 // compressed token
-		};
-		auto sigOnContextEndLength = CorSigCompressAndCompactToken(eventArgs, sigOnContextEnd, 5, 6, sizeof(sigOnContextEnd));
-
-		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMethod(m_typeDef,
-			L"OnContextEnd",
-			mdPublic | mdHideBySig | mdStatic,
-			sigOnContextEnd,
-			sigOnContextEndLength,
-			ulCodeRVA,
-			0,
-			&m_onContextEndMethodDef));
-
-		GUARD_FAILURE_HRESULT(RegisterImplementationTypeDependencies(moduleId, metaDataImport));
+		GUARD_FAILURE_HRESULT(metaDataEmit->GetTokenFromSig(sigSetContextIdLocalVariables, sizeof(sigSetContextIdLocalVariables), &m_setContextIdLocalVariablesSignature));
 
 		return S_OK;
 	}
@@ -173,7 +182,8 @@ namespace Context
 	HRESULT TraceContainerBase::InjectTypeImplementation(const ModuleID moduleId)
 	{
 		GUARD_FAILURE_HRESULT(InjectCtorImplementation(moduleId));
-		GUARD_FAILURE_HRESULT(InjectOnContextEndImplementation(moduleId));
+		GUARD_FAILURE_HRESULT(InjectNotifyContextEndImplementation(moduleId));
+		GUARD_FAILURE_HRESULT(InjectSetContextIdImplementation(moduleId));
 		
 		return S_OK;
 	}
@@ -228,36 +238,18 @@ namespace Context
 		instructions.push_back(new Instruction(CEE_NOP));
 		instructions.push_back(new Instruction(CEE_NOP));
 
+		instructions.push_back(new Instruction(CEE_LDARG_0));
 		instructions.push_back(new Instruction(CEE_CALL, m_guidNewGuidMethodDef));
-		instructions.push_back(new Instruction(CEE_STLOC_0));
-
-		instructions.push_back(new Instruction(CEE_LDLOCA_S, 0));
-		instructions.push_back(new Instruction(CEE_CALL, m_guidToByteArrayMethodDef));
-		instructions.push_back(new Instruction(CEE_STLOC_1));
-
-		instructions.push_back(new Instruction(CEE_LDARG_0));
-		instructions.push_back(new Instruction(CEE_LDLOC_1));
-		instructions.push_back(new Instruction(CEE_LDC_I4_0));
-		instructions.push_back(new Instruction(CEE_CALL, m_bitConverterToUInt64MethodDef));
-		instructions.push_back(new Instruction(CEE_STFLD, m_contextIdLowFieldDef));
-
-		instructions.push_back(new Instruction(CEE_LDARG_0));
-		instructions.push_back(new Instruction(CEE_LDLOC_1));
-		instructions.push_back(new Instruction(CEE_LDC_I4_8));
-		instructions.push_back(new Instruction(CEE_CALL, m_bitConverterToUInt64MethodDef));
-		instructions.push_back(new Instruction(CEE_STFLD, m_contextIdHighFieldDef));
-
-		instructions.push_back(new Instruction(CEE_LDARG_0));
-		instructions.push_back(new Instruction(CEE_LDLOC_0));
-		instructions.push_back(new Instruction(CEE_STFLD, m_contextIdFieldDef));
+		instructions.push_back(new Instruction(CEE_CALL, m_setContextIdMethodDef));
+		instructions.push_back(new Instruction(CEE_NOP));
 		instructions.push_back(new Instruction(CEE_RET));
 
-		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_ctorMethodDef, instructions, m_ctorLocalVariablesSignature));
+		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_ctorMethodDef, instructions));
 
 		return S_OK;
 	}
 
-	HRESULT TraceContainerBase::InjectOnContextEndImplementation(const ModuleID moduleId) const
+	HRESULT TraceContainerBase::InjectNotifyContextEndImplementation(const ModuleID moduleId) const
 	{
 		InstructionList instructions;
 
@@ -266,7 +258,39 @@ namespace Context
 		instructions.push_back(new Instruction(CEE_CALL, m_cuckooSafeToken));
 		instructions.push_back(new Instruction(CEE_RET));
 
-		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_onContextEndMethodDef, instructions));
+		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_notifyContextEndMethodDef, instructions));
+
+		return S_OK;
+	}
+
+	HRESULT TraceContainerBase::InjectSetContextIdImplementation(const ModuleID moduleId) const
+	{
+		InstructionList instructions;
+
+		instructions.push_back(new Instruction(CEE_NOP));
+		instructions.push_back(new Instruction(CEE_LDARGA_S, 0));
+
+		instructions.push_back(new Instruction(CEE_CALL, m_guidToByteArrayMethodDef));
+		instructions.push_back(new Instruction(CEE_STLOC_0));
+
+		instructions.push_back(new Instruction(CEE_LDARG_0));
+		instructions.push_back(new Instruction(CEE_LDLOC_0));
+		instructions.push_back(new Instruction(CEE_LDC_I4_0));
+		instructions.push_back(new Instruction(CEE_CALL, m_bitConverterToUInt64MethodDef));
+		instructions.push_back(new Instruction(CEE_STFLD, m_contextIdLowFieldDef));
+
+		instructions.push_back(new Instruction(CEE_LDARG_0));
+		instructions.push_back(new Instruction(CEE_LDLOC_0));
+		instructions.push_back(new Instruction(CEE_LDC_I4_8));
+		instructions.push_back(new Instruction(CEE_CALL, m_bitConverterToUInt64MethodDef));
+		instructions.push_back(new Instruction(CEE_STFLD, m_contextIdHighFieldDef));
+
+		instructions.push_back(new Instruction(CEE_LDARG_0));
+		instructions.push_back(new Instruction(CEE_LDARG_1));
+		instructions.push_back(new Instruction(CEE_STFLD, m_contextIdFieldDef));
+		instructions.push_back(new Instruction(CEE_RET));
+
+		GUARD_FAILURE_HRESULT(ReplaceMethodWith(moduleId, m_setContextIdMethodDef, instructions, m_setContextIdLocalVariablesSignature));
 
 		return S_OK;
 	}

@@ -132,7 +132,7 @@ namespace Context
 			0x0,0x0 // compressed token
 		};
 
-		auto sigGetCurrentMethodLength = CorSigCompressAndCompactToken(m_typeDef, sigGetCurrentMethod, 3, 4, sizeof(sigGetCurrentMethod));
+		auto sigGetCurrentMethodLength = CorSigCompressAndCompactToken(m_traceContainerBase->GetType(), sigGetCurrentMethod, 3, 4, sizeof(sigGetCurrentMethod));
 		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMethod(m_typeDef,
 			L"GetCurrent",
 			mdPublic | mdHideBySig | mdSpecialName | mdStatic,
