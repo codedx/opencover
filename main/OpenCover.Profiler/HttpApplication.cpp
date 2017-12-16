@@ -290,16 +290,16 @@ namespace Context
 
 		GUARD_FAILURE_HRESULT(metaDataEmit->DefineMemberRef(traceContainerBaseRef, L"SetContextId", sigSetContextId, sigSetContextIdLength, &m_traceContainerBaseSetContextIdRef));
 
-		COR_SIGNATURE sigSetContextIdLocalVariables[] =
+		COR_SIGNATURE sigEndRequestLocalVariables[] =
 		{
 			IMAGE_CEE_CS_CALLCONV_LOCAL_SIG,
 			0x1, // skipping CorSigCompressData (already one byte)
 			ELEMENT_TYPE_CLASS,
 			0x0,0x0 // TraceContainerBase
 		};
-		auto sigSetContextIdLocalVariablesLength = CorSigCompressAndCompactToken(traceContainerBaseRef, sigSetContextIdLocalVariables, 3, 4, sizeof(sigSetContextIdLocalVariables));
+		auto sigEndRequestLocalVariablesLength = CorSigCompressAndCompactToken(traceContainerBaseRef, sigEndRequestLocalVariables, 3, 4, sizeof(sigEndRequestLocalVariables));
 
-		GUARD_FAILURE_HRESULT(metaDataEmit->GetTokenFromSig(sigSetContextIdLocalVariables, sigSetContextIdLocalVariablesLength, &m_endRequestLocalVariablesSignature));
+		GUARD_FAILURE_HRESULT(metaDataEmit->GetTokenFromSig(sigEndRequestLocalVariables, sigEndRequestLocalVariablesLength, &m_endRequestLocalVariablesSignature));
 
 		return S_OK;
 	}

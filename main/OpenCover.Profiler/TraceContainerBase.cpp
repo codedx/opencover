@@ -75,7 +75,7 @@ namespace Context
 		auto sigGuidFieldLength = CorSigCompressAndCompactToken(m_guidTypeDef, sigGuidField, 2, 3, sizeof(sigGuidField));
 		GUARD_FAILURE_HRESULT(metaDataEmit->DefineField(m_typeDef,
 			L"_contextId",
-			fdPublic | fdInitOnly,
+			fdPublic,
 			sigGuidField,
 			sigGuidFieldLength,
 			0,
@@ -93,7 +93,7 @@ namespace Context
 
 		GUARD_FAILURE_HRESULT(metaDataEmit->DefineField(m_typeDef,
 			L"_contextIdHigh",
-			fdPublic | fdInitOnly,
+			fdPublic,
 			sigUInt64Field,
 			sigUInt64FieldLength,
 			0,
@@ -103,7 +103,7 @@ namespace Context
 
 		GUARD_FAILURE_HRESULT(metaDataEmit->DefineField(m_typeDef,
 			L"_contextIdLow",
-			fdPublic | fdInitOnly,
+			fdPublic,
 			sigUInt64Field,
 			sigUInt64FieldLength,
 			0,
@@ -168,10 +168,8 @@ namespace Context
 		{
 			IMAGE_CEE_CS_CALLCONV_LOCAL_SIG,
 			0x1, // skipping CorSigCompressData (already one byte)
-			ELEMENT_TYPE_ARRAY,
-			ELEMENT_TYPE_U8, // Array Type
-			0x1, // Rank (compressed data) // skipping CorSigCompressData (already one byte)
-			0x0 // NumSizes (compressed data) // skipping CorSigCompressData (already one byte)
+			ELEMENT_TYPE_SZARRAY,
+			ELEMENT_TYPE_U1
 		};
 
 		GUARD_FAILURE_HRESULT(metaDataEmit->GetTokenFromSig(sigSetContextIdLocalVariables, sizeof(sigSetContextIdLocalVariables), &m_setContextIdLocalVariablesSignature));
@@ -268,7 +266,7 @@ namespace Context
 		InstructionList instructions;
 
 		instructions.push_back(new Instruction(CEE_NOP));
-		instructions.push_back(new Instruction(CEE_LDARGA_S, 0));
+		instructions.push_back(new Instruction(CEE_LDARGA_S, 1));
 
 		instructions.push_back(new Instruction(CEE_CALL, m_guidToByteArrayMethodDef));
 		instructions.push_back(new Instruction(CEE_STLOC_0));
