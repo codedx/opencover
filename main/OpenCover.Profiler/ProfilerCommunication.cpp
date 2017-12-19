@@ -334,7 +334,7 @@ namespace Communication
 		}, _T("AddVisitPointToBuffer"));
 
 		_pVisitPoints->count += 5;
-		if (_pVisitPoints->count / 5 == VP_BUFFER_SIZE)
+		if (uniqueId == IT_VisitPointContextEnd || _pVisitPoints->count / 5 == VP_BUFFER_SIZE)
 		{
 			SendVisitPoints();
 		}
