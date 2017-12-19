@@ -25,8 +25,6 @@ namespace OpenCover.Framework.Persistance
         private readonly Dictionary<Module, Dictionary<int, KeyValuePair<Class, Method>>> _moduleMethodMap = new Dictionary<Module, Dictionary<int, KeyValuePair<Class, Method>>>();
         private readonly Dictionary<Guid, HashSet<uint>> _contextSpidMap = new Dictionary<Guid, HashSet<uint>>();
 
-        private static readonly ILog DebugLogger = LogManager.GetLogger("DebugLogger");
-
         /// <summary>
         /// constructor
         /// </summary>
@@ -35,7 +33,7 @@ namespace OpenCover.Framework.Persistance
         protected BasePersistance(ICommandLine commandLine, ILog logger)
         {
             CommandLine = commandLine;
-            _logger = logger ?? DebugLogger;
+            _logger = logger ?? LogManager.GetLogger("DebugLogger");
             CoverageSession = new CoverageSession();
             _trackedMethodId = 0;
         }
@@ -595,7 +593,24 @@ namespace OpenCover.Framework.Persistance
                     var contextId = MakeGuid(contextHigh, contextLow);
                     if (spid == (uint) MSG_IdType.IT_VisitPointContextEnd)
                     {
-                        if (_contextSpidMap.TryGetValue(contextId, out HashSet<uint> relatedSpids))
+                        var hasValue = _contextSpidMap.TryGetValue(contextId, out HashSet<uint> relatedSpids);
+
+                        _logger.Debug($"Ended: {contextId} {relatedSpids?.Count}");
+                        if (relatedSpids?.Count > 0)
+                        {
+                            foreach (var relatedSpid in relatedSpids)
+                            {
+                                if (relatedSpid == (uint) MSG_IdType.IT_VisitPointContextEnd)
+                                {
+                                    _logger.Debug("  Related: ? IT_VisitPointContextEnd");
+                                    continue;
+                                }
+                                var relatedSpidMethod = InstrumentationPoint.GetDeclaringMethod(relatedSpid);
+                                _logger.Debug($"  Related: {relatedSpid} {relatedSpidMethod.FullName}");
+                            }
+                        }
+
+                        if (hasValue)
                         {
                             OnContextEnd(contextId, relatedSpids);
 
@@ -611,6 +626,8 @@ namespace OpenCover.Framework.Persistance
                         _logger.ErrorFormat("Failed to add a visit to {0} with tracking method {1}. Max point count is {2}",
                             spid, _trackedMethodId, InstrumentationPoint.Count);
                     }
+                    var declaringMethod = InstrumentationPoint.GetDeclaringMethod(spid);
+                    _logger.Debug($"VP: {contextId} {spid} {declaringMethod.FullName}");
 
                     if (!_contextSpidMap.TryGetValue(contextId, out HashSet<uint> spids))
                     {

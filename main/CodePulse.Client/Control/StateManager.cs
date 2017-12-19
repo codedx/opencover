@@ -135,7 +135,7 @@ namespace CodePulse.Client.Control
 
             public void OnError(string error)
             {
-                _stateManager._errorHandler.HandleError($"Error received from HQ ({error}", null);
+                _stateManager._errorHandler.HandleError($"Error received from HQ ({error})", null);
             }
         }
     }

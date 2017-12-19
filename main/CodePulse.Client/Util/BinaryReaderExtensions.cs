@@ -43,6 +43,15 @@ namespace CodePulse.Client.Util
             return !BitConverter.IsLittleEndian ? reader.ReadInt16() : BitConverter.ToInt16(ReadBytesBigEndian(reader, sizeof(short)), 0);
         }
 
+        public static ushort ReadUInt16BigEndian(this BinaryReader reader)
+        {
+            if (reader == null)
+            {
+                throw new ArgumentNullException(nameof(reader), "Expected non-null BinaryReader");
+            }
+            return !BitConverter.IsLittleEndian ? reader.ReadUInt16() : BitConverter.ToUInt16(ReadBytesBigEndian(reader, sizeof(ushort)), 0);
+        }
+
         public static int ReadInt32BigEndian(this BinaryReader reader)
         {
             if (reader == null)

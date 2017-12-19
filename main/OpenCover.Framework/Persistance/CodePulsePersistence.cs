@@ -26,7 +26,7 @@ namespace OpenCover.Framework.Persistance
 
         /// <inheritdoc />
         public CodePulsePersistence(ICommandLine commandLine, ILog logger)
-            : base(commandLine, null)
+            : base(commandLine, logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }

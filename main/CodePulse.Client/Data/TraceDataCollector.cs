@@ -5,11 +5,13 @@ using CodePulse.Client.Errors;
 using CodePulse.Client.Instrumentation.Id;
 using CodePulse.Client.Message;
 using CodePulse.Client.Trace;
+using log4net;
 
 namespace CodePulse.Client.Data
 {
     public class TraceDataCollector : ITraceDataCollector
     {
+        private readonly ILog _logger;
         private readonly IErrorHandler _errorHandler;
         private readonly IMessageProtocol _messageProtocol;
         private readonly BufferService _bufferService;
@@ -28,13 +30,15 @@ namespace CodePulse.Client.Data
             BufferService bufferService,
             ClassIdentifier classIdentifier,
             MethodIdentifier methodIdentifier,
-            IErrorHandler errorHandler)
+            IErrorHandler errorHandler,
+            ILog logger)
         {
             _messageProtocol = messageProtocol ?? throw new ArgumentNullException(nameof(messageProtocol));
             _bufferService = bufferService ?? throw new ArgumentNullException(nameof(bufferService));
             _classIdentifier = classIdentifier ?? throw new ArgumentNullException(nameof(classIdentifier));
             _methodIdentifier = methodIdentifier ?? throw new ArgumentNullException(nameof(methodIdentifier));
             _errorHandler = errorHandler ?? throw new ArgumentNullException(nameof(errorHandler));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _methodIdAdapter = new MethodIdAdapter(this);
         }
@@ -44,6 +48,8 @@ namespace CodePulse.Client.Data
         {
             var classId = _classIdentifier.Record(className, sourceFile);
             var methodId = _methodIdentifier.Record(classId, methodName, methodSignature, startLineNumber, endLineNumber);
+
+            _logger.Debug($"MethodEntry: {methodSignature} ({methodId})");
 
             try
             {
@@ -76,6 +82,7 @@ namespace CodePulse.Client.Data
             var bufferStartPosition = buffer.Position;
             try
             {
+                _logger.Debug($"SendMapMethodSignature: {signature} ({id})");
                 _messageProtocol.WriteMapMethodSignature(writer, id, signature);
                 wrote = true;
             }

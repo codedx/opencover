@@ -26,47 +26,6 @@ namespace CodePulse.Client.Message
             writer.WriteUtfBigEndian(error);
         }
 
-        public void WriteConfiguration(BinaryWriter writer, string configJson)
-        {
-            writer.Write(MessageTypes.Configuration);
-            writer.WriteUtfBigEndian(configJson);
-        }
-
-        public void WriteDataHelloReply(BinaryWriter writer)
-        {
-            writer.Write(MessageTypes.DataHelloReply);
-        }
-
-        public void WriteStart(BinaryWriter writer)
-        {
-            writer.Write(MessageTypes.Start);
-        }
-
-        public void WriteStop(BinaryWriter writer)
-        {
-            writer.Write(MessageTypes.Stop);
-        }
-
-        public void WritePause(BinaryWriter writer)
-        {
-            writer.Write(MessageTypes.Pause);
-        }
-
-        public void WriteUnpause(BinaryWriter writer)
-        {
-            writer.Write(MessageTypes.Unpause);
-        }
-
-        public void WriteSuspend(BinaryWriter writer)
-        {
-            writer.Write(MessageTypes.Suspend);
-        }
-
-        public void WriteUnsuspend(BinaryWriter writer)
-        {
-            writer.Write(MessageTypes.Unsuspend);
-        }
-
         public void WriteHeartbeat(BinaryWriter writer, AgentOperationMode mode, ushort sendBufferSize)
         {
             writer.Write(MessageTypes.Heartbeat);
@@ -99,44 +58,11 @@ namespace CodePulse.Client.Message
             writer.WriteBigEndian(sequenceId);
         }
 
-        public void WriteClassTransformed(BinaryWriter writer, string className)
-        {
-            writer.Write(MessageTypes.ClassTransformed);
-            writer.WriteUtfBigEndian(className);
-        }
-
-        public void WriteClassTransformFailed(BinaryWriter writer, string className)
-        {
-            writer.Write(MessageTypes.ClassTransformFailed);
-            writer.WriteUtfBigEndian(className);
-        }
-
-        public void WriteClassIgnored(BinaryWriter writer, string className)
-        {
-            writer.Write(MessageTypes.ClassIgnored);
-            writer.WriteUtfBigEndian(className);
-        }
-
-        public void WriteMapThreadName(BinaryWriter writer, ushort threadId, int relTime, string threadName)
-        {
-            writer.Write(MessageTypes.MapThreadName);
-            writer.WriteBigEndian(threadId);
-            writer.WriteBigEndian(relTime);
-            writer.WriteUtfBigEndian(threadName);
-        }
-
         public void WriteMapMethodSignature(BinaryWriter writer, int sigId, string signature)
         {
             writer.Write(MessageTypes.MapMethodSignature);
             writer.WriteBigEndian(sigId);
             writer.WriteUtfBigEndian(signature);
-        }
-
-        public void WriteMapException(BinaryWriter writer, int excId, string exception)
-        {
-            writer.Write(MessageTypes.MapException);
-            writer.WriteBigEndian(excId);
-            writer.WriteUtfBigEndian(exception);
         }
 
         public void WriteMethodEntry(BinaryWriter writer, int relTime, int seq, int sigId, ushort threadId)
@@ -146,46 +72,6 @@ namespace CodePulse.Client.Message
             writer.WriteBigEndian(seq);
             writer.WriteBigEndian(sigId);
             writer.WriteBigEndian(threadId);
-        }
-
-        public void WriteMethodExit(BinaryWriter writer, int relTime, int seq, int sigId, ushort lineNum, ushort threadId)
-        {
-            writer.Write(MessageTypes.MethodExit);
-            writer.WriteBigEndian(relTime);
-            writer.WriteBigEndian(seq);
-            writer.WriteBigEndian(sigId);
-            writer.WriteBigEndian(lineNum);
-            writer.WriteBigEndian(threadId);
-        }
-
-        public void WriteException(BinaryWriter writer, int relTime, int seq, int sigId, int excId, ushort lineNum, ushort threadId)
-        {
-            writer.Write(MessageTypes.Exception);
-            writer.WriteBigEndian(relTime);
-            writer.WriteBigEndian(seq);
-            writer.WriteBigEndian(sigId);
-            writer.WriteBigEndian(excId);
-            writer.WriteBigEndian(lineNum);
-            writer.WriteBigEndian(threadId);
-        }
-
-        public void WriteExceptionBubble(BinaryWriter writer, int relTime, int seq, int sigId, int excId, ushort threadId)
-        {
-            writer.Write(MessageTypes.ExceptionBubble);
-            writer.WriteBigEndian(relTime);
-            writer.WriteBigEndian(seq);
-            writer.WriteBigEndian(sigId);
-            writer.WriteBigEndian(excId);
-            writer.WriteBigEndian(threadId);
-        }
-
-        public void WriteMarker(BinaryWriter writer, string key, string value, int relTime, int seq)
-        {
-            writer.Write(MessageTypes.Marker);
-            writer.WriteUtfBigEndian(key);
-            writer.WriteUtfBigEndian(value);
-            writer.WriteBigEndian(relTime);
-            writer.WriteBigEndian(seq);
         }
     }
 }

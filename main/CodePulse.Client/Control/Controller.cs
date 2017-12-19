@@ -91,33 +91,6 @@ namespace CodePulse.Client.Control
             }
         }
 
-        public void SendClassTransformed(string className)
-        {
-            lock (_sendDataObj)
-            {
-                _protocolVersion.MessageProtocol.WriteClassTransformed(_outputWriter, className);
-                _outputWriter.FlushAndLog("SendClassTransformed");
-            }
-        }
-
-        public void SendClassTransformFailed(string className)
-        {
-            lock (_sendDataObj)
-            {
-                _protocolVersion.MessageProtocol.WriteClassTransformFailed(_outputWriter, className);
-                _outputWriter.FlushAndLog("SendClassTransformFailed");
-            }
-        }
-
-        public void SendClassIgnored(string className)
-        {
-            lock (_sendDataObj)
-            {
-                _protocolVersion.MessageProtocol.WriteClassIgnored(_outputWriter, className);
-                _outputWriter.FlushAndLog("SendClassIgnored");
-            }
-        }
-
         public void SendDataBreak(int sequence)
         {
             lock (_sendDataObj)

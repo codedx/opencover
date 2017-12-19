@@ -68,7 +68,7 @@
     <Compile Include="Agent\ITraceAgent.cs" />
     <Compile Include="Config\RuntimeAgentConfiguration.cs" />
     <Compile Include="Config\StaticAgentConfiguration.cs" />
-    <Compile Include="Connect\Connection.cs" />
+    <Compile Include="Connect\IConnection.cs" />
     <Compile Include="Connect\SocketConnection.cs" />
     <Compile Include="Control\ConfigurationReader.cs" />
     <Compile Include="Control\Controller.cs" />

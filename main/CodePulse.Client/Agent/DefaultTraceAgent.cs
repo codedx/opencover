@@ -157,7 +157,7 @@ namespace CodePulse.Client.Agent
 
                 _bufferPool = new BufferPool(numBuffers, bufferLength);
                 _bufferService = new PooledBufferService(_bufferPool, RuntimeAgentConfiguration.QueueRetryCount, StaticAgentConfiguration.Logger);
-                TraceDataCollector = new TraceDataCollector(_messageProtocol, _bufferService, ClassIdentifier, MethodIdentifier, _errorHandler);
+                TraceDataCollector = new TraceDataCollector(_messageProtocol, _bufferService, ClassIdentifier, MethodIdentifier, _errorHandler, StaticAgentConfiguration.Logger);
 
                 _messageSenderManager = new MessageSenderManager(_socketFactory,
                     _protocolVersion.DataConnectionHandshake,
