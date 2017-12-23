@@ -31,7 +31,6 @@ namespace CodePulse.Client.Test
                     Assert.AreEqual("Exclusion", configuration.Exclusions[0]);
                     Assert.AreEqual("Inclusion", configuration.Inclusions[0]);
                     Assert.AreEqual(3, configuration.BufferMemoryBudget);
-                    Assert.AreEqual(4, configuration.QueueRetryCount);
                     Assert.AreEqual(5, configuration.NumDataSenders);
                 }
             }

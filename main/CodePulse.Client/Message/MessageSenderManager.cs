@@ -24,13 +24,23 @@ namespace CodePulse.Client.Message
         private readonly IList<IConnection> _connections = new List<IConnection>();
         private readonly IList<PooledMessageSender> _senders = new List<PooledMessageSender>();
 
-        private bool _started;
+        public int CurrentSenderCount => _senders.Count;
+
+        public int CurrentConnectionCount => _connections.Count;
+
+        public bool IsShutdown
+        {
+            get
+            {
+                return _senders.All(x => x.IsShutdown);
+            }
+        }
 
         public bool IsIdle
         {
             get
             {
-                return !_started || _senders.All(x => x.IsShutdown || x.IsIdle);
+                return IsShutdown || _senders.All(x => x.IsIdle);
             }
         }
 
@@ -50,16 +60,21 @@ namespace CodePulse.Client.Message
             _runId = runId;
             _errorHandler = errorHandler ?? throw new ArgumentNullException(nameof(errorHandler));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            if (!Start())
+            {
+                Shutdown();
+            }
         }
 
-        public bool Start()
+        public void Shutdown()
         {
-            if (_started)
-            {
-                return false;
-            }
-            _started = true;
+            ShutdownSenders();
+            CloseConnections();
+        }
 
+        private bool Start()
+        {
             try
             {
                 for (var i = 0; i < _numSenders; i++)
@@ -67,32 +82,25 @@ namespace CodePulse.Client.Message
                     var socket = _socketFactory.Connect();
                     if (socket == null)
                     {
-                        throw new ApplicationException("Failed to open HQ Data connection.");
+                        _errorHandler.HandleError($"Failed to open HQ Data connection to host {_socketFactory.Host} on port {_socketFactory.Port} with a retry of {_socketFactory.RetryDurationInMilliseconds} millisecond(s).");
+                        return false;
                     }
 
                     var socketConnection = new SocketConnection(socket);
-
                     try
                     {
                         _dataConnectionHandshake.PerformHandshake(_runId, socketConnection);
                     }
                     catch (HandshakeException ex)
                     {
-                        try
-                        {
-                            socketConnection.Close();
-                        }
-                        catch
-                        {
-                            // ignored
-                        }
+                        socketConnection.Close();
 
                         _errorHandler.HandleError("Unable to perform data connection handshake.", ex);
                         return false;
                     }
 
                     _connections.Add(socketConnection);
-                    _senders.Add(new PooledMessageSender(_bufferPool, 
+                    _senders.Add(new PooledMessageSender(_bufferPool,
                         socketConnection.OutputWriter,
                         _errorHandler,
                         _logger));
@@ -104,26 +112,10 @@ namespace CodePulse.Client.Message
                 return false;
             }
 
-            if (_connections.Count == _numSenders)
-            {
-                foreach (var sender in _senders)
-                {
-                    sender.Start();
-                }
-                return true;
-            }
-
-            foreach (var connection in _connections)
-            {
-                connection.Close();
-            }
-            _connections.Clear();
-            _senders.Clear();
-
-            return false;
+            return true;
         }
 
-        public void Shutdown()
+        private void ShutdownSenders()
         {
             foreach (var sender in _senders)
             {
@@ -134,7 +126,10 @@ namespace CodePulse.Client.Message
                 Thread.Sleep(50);
             }
             _senders.Clear();
+        }
 
+        private void CloseConnections()
+        {
             foreach (var connection in _connections)
             {
                 connection.Close();

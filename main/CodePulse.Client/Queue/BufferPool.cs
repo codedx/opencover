@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.IO;
 
 namespace CodePulse.Client.Queue
@@ -52,15 +53,11 @@ namespace CodePulse.Client.Queue
             }
         }
 
-        public MemoryStream AcquireForReading()
+        public MemoryStream AcquireForReading(TimeSpan timeout)
         {
-            while (true)
+            var now = DateTime.UtcNow;
+            while (timeout == TimeSpan.MaxValue || DateTime.UtcNow.Subtract(now).TotalMilliseconds < timeout.TotalMilliseconds)
             {
-                if (_writeDisabled)
-                {
-                    return null;
-                }
-
                 if (_fullBuffers.TryTake(out MemoryStream fullStream))
                 {
                     return fullStream;
@@ -71,6 +68,7 @@ namespace CodePulse.Client.Queue
                     return partialStream;
                 }
             }
+            return null;
         }
 
         public void Release(MemoryStream stream)

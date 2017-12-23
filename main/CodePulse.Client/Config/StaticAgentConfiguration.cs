@@ -28,6 +28,10 @@ namespace CodePulse.Client.Config
             {
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(hqHost));
             }
+            if (connectTimeout < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(connectTimeout));
+            }
 
             HqPort = hqPort;
             HqHost = hqHost;

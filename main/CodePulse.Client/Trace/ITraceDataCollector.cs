@@ -4,8 +4,10 @@
     {
         int SequenceId { get; }
 
-        int MethodEntry(string className, string sourceFile,
+        void AddMethodVisit(string className, string sourceFile,
             string methodName, string methodSignature,
             int startLineNumber, int endLineNumber);
+
+        void Shutdown();
     }
 }

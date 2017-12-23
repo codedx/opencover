@@ -140,7 +140,7 @@ namespace CodePulse.Client.Test
             {
                 writer.Write(MessageTypes.Configuration);
 
-                var runtimeAgentConfiguration = new RuntimeAgentConfiguration(1, 1, new string[0], new string[0], 1, 1, 1);
+                var runtimeAgentConfiguration = new RuntimeAgentConfiguration(1, 1, new string[0], new string[0], 1, 1);
                 var runtimeAgentConfigurationJson = JsonConvert.SerializeObject(runtimeAgentConfiguration);
                 writer.WriteUtfBigEndian(runtimeAgentConfigurationJson);
 

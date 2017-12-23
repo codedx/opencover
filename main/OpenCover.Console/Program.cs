@@ -29,6 +29,8 @@ namespace OpenCover.Console
     {
         private static readonly ILog Logger = LogManager.GetLogger("OpenCover");
 
+        private static bool ShouldReportCrashes => false;
+
         /// <summary>
         /// This is the initial console harness - it may become the full thing
         /// </summary>
@@ -72,14 +74,17 @@ namespace OpenCover.Console
             }
             catch (Exception ex)
             {
-                Logger.Fatal("At: Program.Main");
-                Logger.FatalFormat("An {0} occured: {1}", ex.GetType(), ex.Message);
-                Logger.FatalFormat("stack: {0}", ex.StackTrace);
-                Logger.FatalFormat("A report has been sent to the OpenCover development team.");
-                Logger.ErrorFormat("If you are unable to resolve the issue please contact the OpenCover development team");
-                Logger.ErrorFormat("see https://www.github.com/opencover/opencover/issues");
+                if (ShouldReportCrashes)
+                { 
+                    Logger.Fatal("At: Program.Main");
+                    Logger.FatalFormat("An {0} occured: {1}", ex.GetType(), ex.Message);
+                    Logger.FatalFormat("stack: {0}", ex.StackTrace);
+                    Logger.FatalFormat("A report has been sent to the OpenCover development team.");
+                    Logger.ErrorFormat("If you are unable to resolve the issue please contact the OpenCover development team");
+                    Logger.ErrorFormat("see https://www.github.com/opencover/opencover/issues");
 
-                ReportCrash(ex);
+                    ReportCrash(ex);
+                }
 
                 returnCode = returnCodeOffset + 1;
             }
@@ -92,12 +97,15 @@ namespace OpenCover.Console
             var ex = (Exception)unhandledExceptionEventArgs.ExceptionObject;
             //if (!(ex is ExitApplicationWithoutReportingException))
             {
-                Logger.Fatal("At: CurrentDomainOnUnhandledException");
-                Logger.FatalFormat("An {0} occured: {1}", ex.GetType(), ex.Message);
-                Logger.FatalFormat("stack: {0}", ex.StackTrace);
-                Logger.FatalFormat("A report has been sent to the OpenCover development team...");
+                if (ShouldReportCrashes)
+                {
+                    Logger.Fatal("At: CurrentDomainOnUnhandledException");
+                    Logger.FatalFormat("An {0} occured: {1}", ex.GetType(), ex.Message);
+                    Logger.FatalFormat("stack: {0}", ex.StackTrace);
+                    Logger.FatalFormat("A report has been sent to the OpenCover development team...");
 
-                ReportCrash((Exception)unhandledExceptionEventArgs.ExceptionObject);
+                    ReportCrash((Exception)unhandledExceptionEventArgs.ExceptionObject);
+                }
             }
 
             Environment.Exit(0);

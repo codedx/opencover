@@ -25,6 +25,7 @@ namespace CodePulse.Client.Connect
             InputReader.Close();
             OutputWriter.Close();
 
+            _socket.Shutdown(SocketShutdown.Both);
             _socket.Close();
         }
 

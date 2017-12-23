@@ -22,12 +22,10 @@ namespace CodePulse.Client.Agent
 
         void Start();
 
-        void KillTrace(string errorMessage);
+        void WaitForStart();
 
         void Shutdown();
 
-        void ShutdownAndWait();
-
-        void WaitForStart();
+        void WaitForShutdown();
     }
 }

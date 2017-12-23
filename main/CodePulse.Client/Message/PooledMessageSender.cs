@@ -19,12 +19,13 @@ namespace CodePulse.Client.Message
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         private volatile bool _isIdle;
-        private volatile bool _isShutdown;
 
-        private Task _task;
+        private TimeSpan ReadTimeout { get; }
+
+        private readonly Task _task;
 
         public bool IsIdle => _isIdle;
-        public bool IsShutdown => _isShutdown;
+        public bool IsShutdown => _task.IsCanceled || _task.IsCompleted || _task.IsFaulted;
 
         public PooledMessageSender(BufferPool bufferPool, 
             BinaryWriter binaryWriter, 
@@ -35,72 +36,81 @@ namespace CodePulse.Client.Message
             _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
             _binaryWriter = binaryWriter ?? throw new ArgumentNullException(nameof(binaryWriter));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
+            _isIdle = true;
 
-        public void Start()
-        {
-            var token = _cancellationTokenSource.Token;
-            _task = Task.Run(() =>
-            {
-                try
-                {
-                    while (!token.IsCancellationRequested)
-                    {
-                        _isIdle = true;
-                        var buffer = _bufferPool.AcquireForReading();
-                        if (buffer == null)
-                        {
-                            // write may be disabled
-                            continue;
-                        }
+            ReadTimeout = TimeSpan.FromMilliseconds(1000);
 
-                        _isIdle = false;
-
-                        try
-                        {
-                            buffer.WriteTo(_binaryWriter.BaseStream);
-
-                            _binaryWriter.FlushAndLog($"PooledMessageSender.Send {buffer.Length} byte(s)");
-
-                            buffer.Reset();
-                        }
-                        catch (Exception ex)
-                        {
-                            _errorHandler.HandleError("Failed to write data buffer.", ex);
-                        }
-                        finally
-                        {
-                            _bufferPool.Release(buffer);
-                        }
-                    }
-
-                    _logger.Info("Message sender received token cancellation request.");
-                }
-                catch (Exception ex)
-                {
-                    _errorHandler.HandleError("PooledMessageSender failed and will no longer process messages.", ex);
-                }
-                finally
-                {
-                    _isShutdown = true;
-                }
-            }, token);
+            _task = Task.Run(() => SendMessages());
         }
 
         public void Shutdown()
         {
-            if (_task == null)
+            try
             {
-                return;
+                _cancellationTokenSource.Cancel();
+                _task.Wait();
             }
-
-            _cancellationTokenSource.Cancel();
-
-            const int waitTime = 5000;
-            if (!_task.Wait(waitTime))
+            catch (AggregateException aex)
             {
-                _logger.Warn($"After waiting {waitTime} milliseconds, gave up waiting for message sender to stop.");
+                aex.Handle(ex =>
+                {
+                    if (!(ex is TaskCanceledException))
+                    {
+                        return false;
+                    }
+
+                    _errorHandler.HandleError("Exception occurred when stopping pooled message sender.", ex);
+                    return true;
+                });
             }
+        }
+
+        private void SendMessages()
+        {
+            try
+            {
+                while (!_cancellationTokenSource.IsCancellationRequested)
+                {
+                    var buffer = GetBuffer();
+                    if (buffer == null)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        buffer.WriteTo(_binaryWriter.BaseStream);
+
+                        _binaryWriter.FlushAndLog($"PooledMessageSender.Send {buffer.Length} byte(s)");
+
+                        buffer.Reset();
+                    }
+                    catch (Exception ex)
+                    {
+                        _errorHandler.HandleError("Failed to write data buffer.", ex);
+                    }
+                    finally
+                    {
+                        _bufferPool.Release(buffer);
+                    }
+                }
+
+                _logger.Info("Message sender received token cancellation request.");
+            }
+            catch (Exception ex)
+            {
+                _errorHandler.HandleError("PooledMessageSender failed and will no longer process messages.", ex);
+            }
+        }
+
+        private MemoryStream GetBuffer()
+        {
+            _isIdle = true;
+
+            var buffer = _bufferPool.AcquireForReading(ReadTimeout);
+            _isIdle = buffer == null;
+
+            return buffer;
         }
     }
 }

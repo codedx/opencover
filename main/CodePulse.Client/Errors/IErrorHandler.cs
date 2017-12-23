@@ -6,6 +6,8 @@ namespace CodePulse.Client.Errors
     {
         event EventHandler<Tuple<string, Exception>> ErrorOccurred;
 
+        void HandleError(string errorMessage);
+
         void HandleError(string errorMessage, Exception exception);
     }
 }

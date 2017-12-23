@@ -25,6 +25,12 @@ namespace CodePulse.Client.Agent
 
         private readonly StateManager _stateManager;
 
+        private volatile bool _isKilled;
+        private readonly object _isKilledLock = new object();
+
+        private volatile bool _isShutdown;
+        private readonly object _isShutdownLock = new object();
+
         private BufferPool _bufferPool;
         private BufferService _bufferService;
         private Controller _controller;
@@ -33,6 +39,7 @@ namespace CodePulse.Client.Agent
         private readonly ConfigurationHandler _configurationHandler;
 
         private readonly ManualResetEvent _startEvent = new ManualResetEvent(false);
+        private readonly ManualResetEvent _shutdownEvent = new ManualResetEvent(false);
 
         private readonly IErrorHandler _errorHandler = new ErrorHandler();
 
@@ -47,7 +54,17 @@ namespace CodePulse.Client.Agent
 
         public ITraceDataCollector TraceDataCollector { get; private set; }
 
-        public bool IsKilled { get; private set; }
+        public bool IsKilled
+        {
+            get => _isKilled;
+            set => _isKilled = value;
+        }
+
+        public bool IsShutdown
+        {
+            get => _isShutdown;
+            set => _isShutdown = value;
+        }
 
         public DefaultTraceAgent(StaticAgentConfiguration staticAgentConfiguration)
         {
@@ -64,7 +81,12 @@ namespace CodePulse.Client.Agent
 
             _errorHandler.ErrorOccurred += (sender, args) =>
             {
-                StaticAgentConfiguration.Logger.Error(args.Item1);
+                var exceptionMessage = "n/a";
+                if (args.Item2 != null)
+                {
+                    exceptionMessage = args.Item2.Message;
+                }
+                StaticAgentConfiguration.Logger.Error($"{args.Item1}: {exceptionMessage}", args.Item2);
             };
         }
 
@@ -87,10 +109,8 @@ namespace CodePulse.Client.Agent
             }
             catch (Exception ex)
             {
-                const string failedToConnectToHq = "Failed to connect to HQ.";
-
-                _errorHandler.HandleError(failedToConnectToHq, ex);
-                throw new ApplicationException($"Agent Connection Error: {failedToConnectToHq}", ex);
+                _errorHandler.HandleError("Failed to connect to HQ.", ex);
+                return false;
             }
 
             try
@@ -101,54 +121,38 @@ namespace CodePulse.Client.Agent
                 }
                 catch (HandshakeException ex)
                 {
-                    try
-                    {
-                        socketConnection.Close();
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
+                    socketConnection.Close();
                     _errorHandler.HandleError("Unable to perform control connection handshake.", ex);
-
                     return false;
                 }
-
-                _controller = new Controller(socketConnection,
-                    _protocolVersion,
-                    RuntimeAgentConfiguration.HeartbeatInterval,
-                    _stateManager.ControlMessageHandler,
-                    _configurationHandler,
-                    _heartbeatInformer,
-                    _errorHandler,
-                    StaticAgentConfiguration.Logger);
             }
             catch (Exception ex)
             {
-                const string failedToGetConfigurationFromHq = "Failed to get configuration from HQ.";
-
-                _errorHandler.HandleError(failedToGetConfigurationFromHq, ex);
-                throw new ApplicationException($"Agent Connection Error: {failedToGetConfigurationFromHq}", ex);
+                _errorHandler.HandleError("Failed to get configuration from HQ.", ex);
+                return false;
             }
 
-            try
-            {
-                _controller.Start();
-            }
-            catch (Exception ex)
-            {
-                const string failedToStartTheAgentController = "Failed to start the agent controller.";
+            _controller = new Controller(socketConnection,
+                _protocolVersion,
+                RuntimeAgentConfiguration.HeartbeatInterval,
+                _stateManager.ControlMessageHandler,
+                _configurationHandler,
+                _heartbeatInformer,
+                _errorHandler,
+                StaticAgentConfiguration.Logger);
 
-                _errorHandler.HandleError(failedToStartTheAgentController, ex);
-                throw new ApplicationException($"Agent Connection Error: {failedToStartTheAgentController}", ex);
-            }
+            _errorHandler.ErrorOccurred += (sender, args) => { RunKillTraceTask(args.Item1); };
 
-            _errorHandler.ErrorOccurred += (sender, args) => { KillTrace(args.Item1); };
             return true; 
         }
 
         public bool Prepare()
         {
+            if (IsKilled)
+            {
+                return false;
+            }
+
             try
             {
                 var memBudget = RuntimeAgentConfiguration.BufferMemoryBudget;
@@ -156,7 +160,7 @@ namespace CodePulse.Client.Agent
                 var numBuffers = memBudget / bufferLength;
 
                 _bufferPool = new BufferPool(numBuffers, bufferLength);
-                _bufferService = new PooledBufferService(_bufferPool, RuntimeAgentConfiguration.QueueRetryCount, StaticAgentConfiguration.Logger);
+                _bufferService = new PooledBufferService(_bufferPool);
                 TraceDataCollector = new TraceDataCollector(_messageProtocol, _bufferService, ClassIdentifier, MethodIdentifier, _errorHandler, StaticAgentConfiguration.Logger);
 
                 _messageSenderManager = new MessageSenderManager(_socketFactory,
@@ -167,19 +171,12 @@ namespace CodePulse.Client.Agent
                     _errorHandler,
                     StaticAgentConfiguration.Logger);
 
-                if (!_messageSenderManager.Start())
-                {
-                    return false;
-                }
-                _stateManager.AddListener(_bufferService.ModeChangeListener);
-
                 return true;
             }
             catch (Exception e)
             {
                 _errorHandler.HandleError("Error initializing trace agent and connecting to HQ.", e);
-
-                throw new ApplicationException("Agent Initialization Error: Failed to set up message sending system", e);
+                return false;
             }
         }
 
@@ -188,31 +185,9 @@ namespace CodePulse.Client.Agent
             _startEvent.Set();
         }
 
-        public void KillTrace(string errorMessage)
+        public void WaitForStart()
         {
-            if (IsKilled)
-            {
-                return;
-            }
-
-            try
-            {
-                _controller.SendError(errorMessage);
-            }
-            catch (Exception ex)
-            {
-                _errorHandler.HandleError("Exception occurred while sending error message.", ex);
-            }
-
-            if (_bufferService != null)
-            {
-                _bufferService.SetSuspended(true);
-                _bufferService.SetPaused(false);
-            }
-
-            Shutdown();
-
-            IsKilled = true;
+            _startEvent.WaitOne();
         }
 
         public void Shutdown()
@@ -220,36 +195,114 @@ namespace CodePulse.Client.Agent
             _stateManager.TriggerShutdown();
         }
 
-        public void ShutdownAndWait()
+        public void WaitForShutdown()
         {
-            Shutdown();
-            WaitForSenderManager();
+            _shutdownEvent.WaitOne();
         }
 
-        public void CloseConnections()
+        private void KillTrace(string errorMessage)
         {
-            _messageSenderManager.Shutdown();
-            _controller.Shutdown();
+            var lockAcquired = Monitor.TryEnter(_isKilledLock);
+            if (!lockAcquired)
+            {
+                return;
+            }
+
+            try
+            {
+                if (IsKilled)
+                {
+                    return;
+                }
+
+                try
+                {
+                    _controller.SendError(errorMessage);
+                }
+                catch (Exception ex)
+                {
+                    _errorHandler.HandleError("Exception occurred while sending error message.", ex);
+                }
+
+                Shutdown();
+
+                // release any callers awaiting a start that will not occur
+                _startEvent.Set();
+
+                IsKilled = true;
+            }
+            finally
+            {
+                Monitor.Exit(_isKilledLock);
+            }
         }
 
-        public void WaitForStart()
+        private void ShutdownAgent()
         {
-            _startEvent.WaitOne();
+            var lockAcquired = Monitor.TryEnter(_isShutdownLock);
+            if (!lockAcquired)
+            {
+                return;
+            }
+
+            try
+            {
+                if (IsShutdown)
+                {
+                    return;
+                }
+
+                if (_bufferService != null)
+                { 
+                    _bufferService.SetSuspended(true);
+                    if (_bufferService.IsPaused)
+                    {
+                        _bufferService.SetPaused(false);
+                    }
+                }
+
+                TraceDataCollector?.Shutdown();
+                WaitForSenderManager();
+                _messageSenderManager?.Shutdown();
+                _controller?.Shutdown();
+
+                IsShutdown = true;
+
+                _shutdownEvent.Set();
+            }
+            finally
+            {
+                Monitor.Exit(_isShutdownLock);
+            }
+        }
+
+        private void RunShutdownAgentTask()
+        {
+            Task.Run(() =>
+            {
+                ShutdownAgent();
+            });
+        }
+
+        private void RunKillTraceTask(string errorMessage)
+        {
+            Task.Run(() =>
+            {
+                KillTrace(errorMessage);
+            });
         }
 
         private void WaitForSenderManager()
         {
+            if (_messageSenderManager == null)
+            {
+                return;
+            }
+
             var sleepInterval = RuntimeAgentConfiguration.HeartbeatInterval;
             do
             {
-                try
-                {
-                    Thread.Sleep(sleepInterval);
-                }
-                catch (Exception ex)
-                {
-                    _errorHandler.HandleError("Exception occurred while waiting for send queue to empty.", ex);
-                }
+                Thread.Sleep(sleepInterval);
             }
             while (!IsKilled && (!_messageSenderManager.IsIdle || _bufferPool.ReadableBuffers > 0));
         }
@@ -272,16 +325,10 @@ namespace CodePulse.Client.Agent
         private class HeartbeatInformer : IHeartbeatInformer
         {
             private readonly DefaultTraceAgent _agent;
+
             public AgentOperationMode OperationMode => _agent._stateManager.CurrentMode;
 
-            public int SendQueueSize
-            {
-                get
-                {
-                    var agentBufferPool = _agent._bufferPool;
-                    return agentBufferPool?.ReadableBuffers ?? 0;
-                }
-            }
+            public int SendQueueSize => _agent._bufferPool?.ReadableBuffers ?? 0;
 
             public HeartbeatInformer(DefaultTraceAgent agent)
             {
@@ -324,28 +371,51 @@ namespace CodePulse.Client.Agent
                 if (oldMode == AgentOperationMode.Initializing && newMode != AgentOperationMode.Shutdown)
                 {
                     _agent.Start();
+                    return;
                 }
-                else if (newMode == AgentOperationMode.Shutdown)
+
+                switch (newMode)
                 {
-                    Task.Run(() =>
-                    {
-                        _agent.WaitForSenderManager();
-                        _agent.CloseConnections();
-                    });
-                    
-                }
-                else if (newMode == AgentOperationMode.Suspended)
-                {
-                    try
-                    {
-                        _agent._controller.SendDataBreak(_agent.TraceDataCollector.SequenceId);
-                    }
-                    catch (Exception ex)
-                    {
-                        _agent._errorHandler.HandleError("Error sending data break message.", ex);
-                    }
+                    case AgentOperationMode.Initializing:
+                        break;
+
+                    case AgentOperationMode.Tracing:
+                        switch (oldMode)
+                        {
+                            case AgentOperationMode.Paused:
+                                _agent._bufferService.SetPaused(false);
+                                break;
+                            case AgentOperationMode.Suspended:
+                                _agent._bufferService.SetSuspended(false);
+                                break;
+                        }
+                        break;
+
+                    case AgentOperationMode.Paused:
+                        _agent._bufferService.SetPaused(true);
+                        break;
+
+                    case AgentOperationMode.Suspended:
+                        try
+                        {
+                            _agent._controller.SendDataBreak(_agent.TraceDataCollector.SequenceId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _agent._errorHandler.HandleError("Error sending data break message.", ex);
+                        }
+                        _agent._bufferService.SetSuspended(true);
+                        break;
+
+                    case AgentOperationMode.Shutdown:
+                        _agent.RunShutdownAgentTask();
+                        break;
+
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(newMode), newMode, null);
                 }
             }
         }
     }
 }
+

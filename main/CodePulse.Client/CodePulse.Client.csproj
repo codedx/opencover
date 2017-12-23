@@ -106,6 +106,8 @@
     <Compile Include="Queue\BufferPool.cs" />
     <Compile Include="Trace\IMethodSignatureBuilder.cs" />
     <Compile Include="Trace\ITraceDataCollector.cs" />
+    <Compile Include="Trace\ITraceMessage.cs" />
+    <Compile Include="Trace\MethodVisitTraceMessage.cs" />
     <Compile Include="Trace\MethodSignatureBuilder.cs" />
     <Compile Include="Util\BinaryReaderExtensions.cs" />
     <Compile Include="Util\BinaryWriterExtensions.cs" />

@@ -5,13 +5,15 @@ namespace CodePulse.Client.Util
 {
     public class SocketFactory
     {
-        private readonly int _port;
-        private readonly int _retryDurationInMilliseconds;
-        private readonly string _host;
+        public int Port { get; }
+
+        public int RetryDurationInMilliseconds { get; }
+
+        public string Host { get; }
 
         public SocketFactory(string host, int port, int retryDurationInMilliseconds)
         {
-            _host = host ?? throw new ArgumentNullException(nameof(host));
+            Host = host ?? throw new ArgumentNullException(nameof(host));
             if (port <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(port));
@@ -20,14 +22,14 @@ namespace CodePulse.Client.Util
             {
                 throw new ArgumentOutOfRangeException(nameof(retryDurationInMilliseconds));
             }
-            _port = port;
-            _retryDurationInMilliseconds = retryDurationInMilliseconds;
+            Port = port;
+            RetryDurationInMilliseconds = retryDurationInMilliseconds;
         }
 
         public Socket Connect()
         {
             var now = DateTime.UtcNow;
-            var timeoutExpires = now.AddMilliseconds(_retryDurationInMilliseconds);
+            var timeoutExpires = now.AddMilliseconds(RetryDurationInMilliseconds);
 
             Socket socket;
             do
@@ -35,7 +37,7 @@ namespace CodePulse.Client.Util
                 socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 try
                 {
-                    socket.Connect(_host, _port);
+                    socket.Connect(Host, Port);
                 }
                 catch
                 {

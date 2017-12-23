@@ -15,8 +15,6 @@ namespace CodePulse.Client.Config
 
         public int BufferMemoryBudget { get; }
 
-        public int QueueRetryCount { get; }
-
         public int NumDataSenders { get; }
 
         [JsonConstructor]
@@ -25,7 +23,6 @@ namespace CodePulse.Client.Config
             IEnumerable<string> exclusions,
             IEnumerable<string> inclusions,
             int bufferMemoryBudget,
-            int queueRetryCount,
             int numDataSenders)
         {
             RunId = runId;
@@ -33,7 +30,6 @@ namespace CodePulse.Client.Config
             Exclusions = new List<string>(exclusions);
             Inclusions = new List<string>(inclusions);
             BufferMemoryBudget = bufferMemoryBudget;
-            QueueRetryCount = queueRetryCount;
             NumDataSenders = numDataSenders;
         }
     }

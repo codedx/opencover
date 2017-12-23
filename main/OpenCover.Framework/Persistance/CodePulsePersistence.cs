@@ -53,18 +53,27 @@ namespace OpenCover.Framework.Persistance
             _agent = new DefaultTraceAgent(configuration);
             if (!_agent.Connect())
             {
-                _logger.Error($"Cannot connect agent to Code Pulse at {configuration.HqHost} and {configuration.HqPort}.");
+                _logger.Error($"Cannot connect agent to Code Pulse at {configuration.HqHost} on port {configuration.HqPort}.");
                 return false;
             }
+
+            _agent.WaitForStart();
 
             if (!_agent.Prepare())
             {
                 _logger.Error("Could not prepare to send data to Code Pulse");
                 return false;
             }
-
-            _agent.WaitForStart();
+            
             return true;
+        }
+
+        /// <inheritdoc />
+        public override void Commit()
+        {
+            base.Commit();
+
+            _agent.Shutdown();
         }
 
         /// <inheritdoc />
@@ -101,7 +110,7 @@ namespace OpenCover.Framework.Persistance
 
                 var endLineNumber = startAndEndLineNumber.Item2.Value;
 
-                _agent.TraceDataCollector.MethodEntry(@class.FullName, filePath,
+                _agent.TraceDataCollector.AddMethodVisit(@class.FullName, filePath,
                     declaringMethod.CallName,
                     declaringMethod.MethodSignature,
                     startAndEndLineNumber.Item1.Value,

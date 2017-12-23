@@ -28,9 +28,9 @@ namespace CodePulse.Client.Control
 
         private readonly object _sendDataObj = new object();
 
-        private Task _task;
+        private readonly Task _task;
 
-        public bool IsRunning { get; private set; }
+        public bool IsRunning => _task.Status == TaskStatus.Running;
 
         public Controller(SocketConnection socketConnection,
             IProtocolVersion protocolVersion,
@@ -54,12 +54,18 @@ namespace CodePulse.Client.Control
 
             _inputReader = _socketConnection.InputReader;
             _outputWriter = _socketConnection.OutputWriter;
+
+            _task = Task.Run(() => RunController());
+        }
+
+        public void SetHeartbeatInterval(int heartbeatInterval)
+        {
+            if (heartbeatInterval <= 0) throw new ArgumentOutOfRangeException(nameof(heartbeatInterval));
+            _heartbeatInterval = heartbeatInterval;
         }
 
         public void Shutdown()
         {
-            IsRunning = false;
-
             if (_task == null)
             {
                 return;
@@ -68,17 +74,24 @@ namespace CodePulse.Client.Control
             try
             {
                 _cancellationTokenSource.Cancel();
-
-                if (!_task.Wait(2000))
-                {
-                    _errorHandler.HandleError("Gave up waiting for controller to stop.", null);
-                }
-
-                _socketConnection.Close();
+                _task.Wait();
             }
-            catch (Exception ex)
+            catch (AggregateException aex)
             {
-                _errorHandler.HandleError("Exception occurred when stopping agent controller.", ex);
+                aex.Handle(ex =>
+                {
+                    if (!(ex is TaskCanceledException))
+                    {
+                        return false;
+                    }
+
+                    _errorHandler.HandleError("Exception occurred when stopping agent controller.", ex);
+                    return true;
+                });
+            }
+            finally
+            {
+                _socketConnection.Close();
             }
         }
 
@@ -100,53 +113,35 @@ namespace CodePulse.Client.Control
             }
         }
 
-        public void Start()
+        private void RunController()
         {
-            var token = _cancellationTokenSource.Token;
-            _task = Task.Run(() =>
+            try
             {
-                IsRunning = true;
-                try
+                var nextHeartbeat = DateTime.UtcNow;
+                while (!_cancellationTokenSource.IsCancellationRequested)
                 {
-                    var nextHeartbeat = DateTime.UtcNow;
-                    while (!token.IsCancellationRequested)
+                    // drain incoming messages before attempting to write
+                    do
                     {
-                        // drain incoming messages before attempting to write
-                        do
-                        {
-                        }
-                        while (ProcessIncomingMessage(1));
-                        
-                        if (DateTime.UtcNow > nextHeartbeat)
-                        {
-                            SendHeartbeat();
-                            nextHeartbeat = DateTime.UtcNow.AddMilliseconds(_heartbeatInterval);
-                        }
+                    }
+                    while (ProcessIncomingMessage(100, _cancellationTokenSource.Token));
 
-                        var timeout = Math.Max(nextHeartbeat.Subtract(DateTime.UtcNow).TotalMilliseconds, 1);
-                        ProcessIncomingMessage((int) timeout);
+                    if (DateTime.UtcNow > nextHeartbeat)
+                    {
+                        SendHeartbeat();
+                        nextHeartbeat = DateTime.UtcNow.AddMilliseconds(_heartbeatInterval);
                     }
 
-                    _logger.Info("Controller received token cancellation request.");
+                    var timeout = Math.Max(nextHeartbeat.Subtract(DateTime.UtcNow).TotalMilliseconds, 1);
+                    ProcessIncomingMessage((int)timeout, _cancellationTokenSource.Token);
                 }
-                catch (Exception ex)
-                {
-                    if (IsRunning)
-                    { 
-                        _errorHandler.HandleError("Controller failed and will no longer process messages.", ex);
-                    }
-                }
-                finally
-                {
-                    IsRunning = false;
-                }
-            }, token);
-        }
 
-        public void SetHeartbeatInterval(int heartbeatInterval)
-        {
-            if (heartbeatInterval <= 0) throw new ArgumentOutOfRangeException(nameof(heartbeatInterval));
-            _heartbeatInterval = heartbeatInterval;
+                _logger.Info("Controller received token cancellation request.");
+            }
+            catch (Exception ex)
+            {
+                _errorHandler.HandleError("Controller failed and will no longer process messages.", ex);
+            }
         }
 
         private void SendHeartbeat()
@@ -161,7 +156,7 @@ namespace CodePulse.Client.Control
             }
         }
 
-        private bool ProcessIncomingMessage(int timeout)
+        private bool ProcessIncomingMessage(int timeout, CancellationToken token)
         {
             if (timeout <= 0)
             {
@@ -177,7 +172,7 @@ namespace CodePulse.Client.Control
             catch (IOException e)
             {
                 var socketException = e.InnerException as SocketException;
-                if (socketException?.SocketErrorCode == SocketError.TimedOut)
+                if (socketException?.SocketErrorCode == SocketError.TimedOut || token.IsCancellationRequested)
                 {
                     return false;
                 }

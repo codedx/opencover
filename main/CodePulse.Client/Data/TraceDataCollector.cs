@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using CodePulse.Client.Errors;
 using CodePulse.Client.Instrumentation.Id;
 using CodePulse.Client.Message;
@@ -22,6 +24,10 @@ namespace CodePulse.Client.Data
 
         private readonly DateTime _startTime = DateTime.UtcNow;
 
+        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private readonly BlockingCollection<ITraceMessage> _traceMessages = new BlockingCollection<ITraceMessage>(new ConcurrentQueue<ITraceMessage>());
+        private readonly Task _task;
+
         private int _sequenceId;
 
         public int SequenceId => _sequenceId;
@@ -41,9 +47,87 @@ namespace CodePulse.Client.Data
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _methodIdAdapter = new MethodIdAdapter(this);
+
+            _task = Task.Run(() => ReadTraceMessages());
         }
 
-        public int MethodEntry(string className, string sourceFile, string methodName, string methodSignature,
+        public void AddMethodVisit(string className, string sourceFile, string methodName, string methodSignature, int startLineNumber,
+            int endLineNumber)
+        {
+            if (_task.Status != TaskStatus.Running)
+            {
+                _logger.Warn($"Ignoring method visit for {className}.{methodName} ({methodSignature}) because trace data collector is not running.");
+                return;
+            }
+
+            _traceMessages.Add(new MethodVisitTraceMessage(
+                className,
+                sourceFile,
+                methodName,
+                methodSignature,
+                startLineNumber,
+                endLineNumber));
+        }
+
+        public void Shutdown()
+        {
+            _traceMessages.CompleteAdding();
+
+            try
+            {
+                _cancellationTokenSource.Cancel();
+                _task.Wait();
+            }
+            catch (AggregateException aex)
+            {
+                aex.Handle(ex =>
+                {
+                    if (!(ex is TaskCanceledException))
+                    {
+                        return false;
+                    }
+
+                    _errorHandler.HandleError("Exception occurred when stopping trace data collector.", ex);
+                    return true;
+                });
+            }
+            finally
+            {
+                _traceMessages.Dispose();
+            }
+        }
+
+        private void ReadTraceMessages()
+        {
+            while (!_traceMessages.IsCompleted && !_cancellationTokenSource.IsCancellationRequested)
+            {
+                try
+                {
+                    var traceMessage = _traceMessages.Take(_cancellationTokenSource.Token);
+                    if (!(traceMessage is MethodVisitTraceMessage))
+                    {
+                        throw new InvalidOperationException($"Detected unknown trace message of type {traceMessage.GetType().FullName}.");
+                    }
+
+                    var methodVisitTraceMessage = (MethodVisitTraceMessage) traceMessage;
+                    MethodEntry(methodVisitTraceMessage.ClassName,
+                        methodVisitTraceMessage.SourceFile,
+                        methodVisitTraceMessage.MethodName,
+                        methodVisitTraceMessage.MethodSignature,
+                        methodVisitTraceMessage.StartLineNumber,
+                        methodVisitTraceMessage.EndLineNumber);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception ex)
+                {
+                    _errorHandler.HandleError("Unexpected error occurred while reading from trace messages queue.", ex);
+                }
+            }
+        }
+
+        private void MethodEntry(string className, string sourceFile, string methodName, string methodSignature,
             int startLineNumber, int endLineNumber)
         {
             var classId = _classIdentifier.Record(className, sourceFile);
@@ -66,11 +150,9 @@ namespace CodePulse.Client.Data
             {
                 _errorHandler.HandleError("Error sending method entry.", ex);
             }
-
-            return methodId;
         }
 
-        public void SendMapMethodSignature(string signature, int id)
+        private void SendMapMethodSignature(string signature, int id)
         {
             var buffer = _bufferService.ObtainBuffer();
             if (buffer == null)
