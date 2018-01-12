@@ -8,7 +8,6 @@ namespace CodePulse.Client.Util
     {
         public static void FlushAndLog(this BinaryWriter writer, string description)
         {
-            Console.Out.WriteLine($"Flushing data for {description}.");
             writer.Flush();
         }
 
