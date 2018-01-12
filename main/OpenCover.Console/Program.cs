@@ -19,7 +19,6 @@ using OpenCover.Framework.Persistance;
 using OpenCover.Framework.Utility;
 using log4net;
 using System.Management;
-using CodePulse.Client.Config;
 using OpenCover.Framework.Model;
 using File = System.IO.File;
 
@@ -28,8 +27,6 @@ namespace OpenCover.Console
     internal class Program
     {
         private static readonly ILog Logger = LogManager.GetLogger("OpenCover");
-
-        private static bool ShouldReportCrashes => false;
 
         /// <summary>
         /// This is the initial console harness - it may become the full thing
@@ -54,11 +51,14 @@ namespace OpenCover.Console
                 var filter = BuildFilter(parser);
                 var perfCounter = CreatePerformanceCounter(parser);
 
+                if (!GetFullOutputFile(parser, out string outputFile)) 
+                    return returnCodeOffset + 1;
+
                 using (var container = new Bootstrapper(Logger))
                 {
-                    var persistance = new CodePulsePersistence(parser, Logger);
+                    var persistance = new FilePersistance(parser, Logger);
                     container.Initialise(filter, parser, persistance, perfCounter);
-                    if (!persistance.Initialize(new StaticAgentConfiguration(8765, "127.0.0.1", 5000, Logger)))
+                    if (!persistance.Initialise(outputFile, parser.MergeExistingOutputFile))
                         return returnCodeOffset + 1;
 
                     returnCode = RunWithContainer(parser, container, persistance);
@@ -74,17 +74,14 @@ namespace OpenCover.Console
             }
             catch (Exception ex)
             {
-                if (ShouldReportCrashes)
-                { 
-                    Logger.Fatal("At: Program.Main");
-                    Logger.FatalFormat("An {0} occured: {1}", ex.GetType(), ex.Message);
-                    Logger.FatalFormat("stack: {0}", ex.StackTrace);
-                    Logger.FatalFormat("A report has been sent to the OpenCover development team.");
-                    Logger.ErrorFormat("If you are unable to resolve the issue please contact the OpenCover development team");
-                    Logger.ErrorFormat("see https://www.github.com/opencover/opencover/issues");
+                Logger.Fatal("At: Program.Main");
+                Logger.FatalFormat("An {0} occured: {1}", ex.GetType(), ex.Message);
+                Logger.FatalFormat("stack: {0}", ex.StackTrace);
+                Logger.FatalFormat("A report has been sent to the OpenCover development team.");
+                Logger.ErrorFormat("If you are unable to resolve the issue please contact the OpenCover development team");
+                Logger.ErrorFormat("see https://www.github.com/opencover/opencover/issues");
 
-                    ReportCrash(ex);
-                }
+                ReportCrash(ex);
 
                 returnCode = returnCodeOffset + 1;
             }
@@ -97,15 +94,12 @@ namespace OpenCover.Console
             var ex = (Exception)unhandledExceptionEventArgs.ExceptionObject;
             //if (!(ex is ExitApplicationWithoutReportingException))
             {
-                if (ShouldReportCrashes)
-                {
-                    Logger.Fatal("At: CurrentDomainOnUnhandledException");
-                    Logger.FatalFormat("An {0} occured: {1}", ex.GetType(), ex.Message);
-                    Logger.FatalFormat("stack: {0}", ex.StackTrace);
-                    Logger.FatalFormat("A report has been sent to the OpenCover development team...");
+                Logger.Fatal("At: CurrentDomainOnUnhandledException");
+                Logger.FatalFormat("An {0} occured: {1}", ex.GetType(), ex.Message);
+                Logger.FatalFormat("stack: {0}", ex.StackTrace);
+                Logger.FatalFormat("A report has been sent to the OpenCover development team...");
 
-                    ReportCrash((Exception)unhandledExceptionEventArgs.ExceptionObject);
-                }
+                ReportCrash((Exception)unhandledExceptionEventArgs.ExceptionObject);
             }
 
             Environment.Exit(0);
