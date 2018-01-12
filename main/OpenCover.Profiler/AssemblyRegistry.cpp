@@ -106,7 +106,14 @@ namespace Injection
 			return result;
 		}
 
-		StoreAssemblyDetails(pbPublicKeyOrToken, cbPublicKeyOrToken, hashAlgId, zName, chNameOut, metaData, assemblyRefFlags);
+		try
+		{
+			StoreAssemblyDetails(pbPublicKeyOrToken, cbPublicKeyOrToken, hashAlgId, zName, chNameOut, metaData, assemblyRefFlags);
+		}
+		catch (std::runtime_error)
+		{
+			return E_UNEXPECTED;
+		}
 
 		HCORENUM hEnum = nullptr;
 		mdAssemblyRef references[20];
@@ -145,7 +152,14 @@ namespace Injection
 					return propsResult;
 				}
 
-				StoreAssemblyDetails(pbPublicKeyOrToken, cbPublicKeyOrToken, CALG_SHA1, zName, chNameOut, metaData, assemblyRefFlags);
+				try
+				{
+					StoreAssemblyDetails(pbPublicKeyOrToken, cbPublicKeyOrToken, CALG_SHA1, zName, chNameOut, metaData, assemblyRefFlags);
+				}
+				catch (std::runtime_error)
+				{
+					return E_UNEXPECTED;
+				}
 			}
 		}
 		metaDataAssemblyImport->CloseEnum(hEnum);
@@ -188,10 +202,11 @@ namespace Injection
 		{
 			std::vector<BYTE> publicKeyToken;
 			PublicKeyTokenCreator tokenCreator;
-			if (tokenCreator.GetPublicKeyToken(pbPublicKeyOrToken, cbPublicKeyOrToken, hashAlgId, publicKeyToken))
+			if (!tokenCreator.GetPublicKeyToken(pbPublicKeyOrToken, cbPublicKeyOrToken, hashAlgId, publicKeyToken))
 			{
-				copy(publicKeyToken.begin(), publicKeyToken.end(), assemblyReference.publicKeyToken);
+				throw std::runtime_error("Unable to compute public key token");
 			}
+			copy(publicKeyToken.begin(), publicKeyToken.end(), assemblyReference.publicKeyToken);
 		}
 
 		auto knownAssemblyReference = m_assemblyVersionRegistry.find(assemblyReference.name);

@@ -13,7 +13,7 @@ namespace Injection
 			nullptr,
 			nullptr,
 			PROV_RSA_FULL,
-			0))
+			CRYPT_VERIFYCONTEXT))
 		{
 			m_hCryptProv = 0;
 			return;
@@ -32,6 +32,11 @@ namespace Injection
 	bool PublicKeyTokenCreator::GetPublicKeyToken(BYTE* pbPublicKey, const DWORD cbPublicKey, const ALG_ID hashAlgorithmId,
 		std::vector<BYTE>& publicKeyToken) const
 	{
+		if (m_hCryptProv == 0)
+		{
+			return false;
+		}
+
 		if (pbPublicKey == nullptr)
 		{
 			return false;
