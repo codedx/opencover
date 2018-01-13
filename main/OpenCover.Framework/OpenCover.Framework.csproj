@@ -154,6 +154,7 @@
     <Compile Include="Symbols\SymbolFile.cs" />
     <Compile Include="Symbols\SymbolFileHelper.cs" />
     <Compile Include="Utility\CodeCoverageStringTextSource.cs" />
+    <Compile Include="Utility\IdentityHelper.cs" />
     <Compile Include="Utility\IPerfCounters.cs" />
     <Compile Include="Utility\LogHelper.cs" />
     <Compile Include="Utility\PerfCounters.cs" />

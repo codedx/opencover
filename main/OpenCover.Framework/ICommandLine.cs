@@ -80,5 +80,35 @@ namespace OpenCover.Framework
         /// The number of msec between sends of the visit points to the host regardless of the number that has accumulated
         /// </summary>
         uint SendVisitPointsTimerInterval { get; }
+
+        /// <summary>
+        /// Filters are to use regular expressions rather than wild cards
+        /// </summary>
+        bool RegExFilters { get; }
+
+        /// <summary>
+        /// If specified then the default filters should not be applied
+        /// </summary>
+        bool NoDefaultFilters { get; }
+
+        /// <summary>
+        /// A list of filters
+        /// </summary>
+        List<string> Filters { get; }
+
+        /// <summary>
+        /// A list of attribute exclusion filters
+        /// </summary>
+        List<string> AttributeExclusionFilters { get; }
+
+        /// <summary>
+        /// A list of file exclusion filters
+        /// </summary>
+        List<string> FileExclusionFilters { get; }
+
+        /// <summary>
+        /// A list of test file filters
+        /// </summary>
+        List<string> TestFilters { get; }
     }
 }

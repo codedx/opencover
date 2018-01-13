@@ -177,7 +177,6 @@
     <Compile Include="Framework\Utility\CodeCoverageStringTextSourceTest.cs" />
     <Compile Include="Framework\Utility\SequencePointComparerTest.cs" />
     <Compile Include="Framework\Utility\SourceRepositoryTest.cs" />
-    <Compile Include="IdentityHelper.cs" />
     <Compile Include="Integration\SimpleBranchTests.cs" />
     <Compile Include="Integration\SimpleExceptionTests.cs" />
     <Compile Include="Integration\ThreadingTests.cs" />

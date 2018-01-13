@@ -472,7 +472,7 @@ namespace OpenCover.Framework
         /// </summary>
         /// <param name="parser"></param>
         /// <returns></returns>
-        public static IFilter BuildFilter(CommandLineParser parser)
+        public static IFilter BuildFilter(ICommandLine parser)
         {
             var filter = new Filter(parser.RegExFilters);
 

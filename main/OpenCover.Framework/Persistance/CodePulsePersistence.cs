@@ -68,6 +68,19 @@ namespace OpenCover.Framework.Persistance
             return true;
         }
 
+        /// <summary>
+        /// Blocks caller until shutdown occurs.
+        /// </summary>
+        public void WaitForShutdown()
+        {
+            if (_agent == null)
+            {
+                throw new InvalidOperationException("Agent has not been initialized.");
+            }
+
+            _agent.WaitForShutdown();
+        }
+
         /// <inheritdoc />
         public override void Commit()
         {
