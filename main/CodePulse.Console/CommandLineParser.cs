@@ -250,7 +250,7 @@ namespace CodePulse.Console
             builder.AppendLine("[\"]-Target:<target application>[\"] [[\"]-TargetDir:<targetdir>[\"]] [[\"]-TargetArgs:<arguments for the target process>[\"]] -SendVisitPointsTimerInterval:<value-greater-than-zero> [common-parameters]");
             builder.AppendLine();
             builder.AppendLine("Common-Parameters:");
-            builder.AppendLine("[-Register[:user]]");
+            builder.AppendLine("[-Register[:user|path32|path64]]");
             builder.AppendLine("[-CodePulsePort[:port]]");
             builder.AppendLine("[-CodePulseHost[:host]]");
             builder.AppendLine("[-CodePulseConnectTimeout[:milliseconds]]");

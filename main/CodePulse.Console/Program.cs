@@ -521,6 +521,8 @@ namespace CodePulse.Console
                 Logger.Info("    output file and refer to the Usage guide (Usage.rtf) about filters.");
                 Logger.Info("    2) the profiler may not be registered correctly, please refer to the Usage");
                 Logger.Info("    guide and the -register switch.");
+                Logger.Info("    3) the user account for the process under test (e.g., app pool account) may");
+                Logger.Info("    not have access to the registered profiler DLL.");
             }
         }
         #endregion
