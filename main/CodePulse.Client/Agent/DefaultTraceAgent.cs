@@ -383,16 +383,16 @@ namespace CodePulse.Client.Agent
                         switch (oldMode)
                         {
                             case AgentOperationMode.Paused:
-                                _agent._bufferService.SetPaused(false);
+                                _agent._bufferService?.SetPaused(false);
                                 break;
                             case AgentOperationMode.Suspended:
-                                _agent._bufferService.SetSuspended(false);
+                                _agent._bufferService?.SetSuspended(false);
                                 break;
                         }
                         break;
 
                     case AgentOperationMode.Paused:
-                        _agent._bufferService.SetPaused(true);
+                        _agent._bufferService?.SetPaused(true);
                         break;
 
                     case AgentOperationMode.Suspended:
@@ -404,7 +404,7 @@ namespace CodePulse.Client.Agent
                         {
                             _agent._errorHandler.HandleError("Error sending data break message.", ex);
                         }
-                        _agent._bufferService.SetSuspended(true);
+                        _agent._bufferService?.SetSuspended(true);
                         break;
 
                     case AgentOperationMode.Shutdown:
