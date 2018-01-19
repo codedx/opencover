@@ -7,7 +7,7 @@
     <ProjectGuid>{D27C7E5F-EFD6-4EB9-B1CE-C344974B3BD3}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>CodePulse.Console</RootNamespace>
-    <AssemblyName>CodePulse.DotNet.Console</AssemblyName>
+    <AssemblyName>CodePulse.DotNet.Tracer</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

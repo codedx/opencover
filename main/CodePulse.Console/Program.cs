@@ -384,7 +384,10 @@ namespace CodePulse.Console
                 System.Console.Error.WriteLine();
                 System.Console.Error.WriteLine(invalidArgumentsMessage);
                 System.Console.Error.WriteLine();
-                System.Console.Error.WriteLine("Review usage statement by running: CodePulse.DotNet.Console.exe -?");
+
+                var executingAssemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+                System.Console.Error.WriteLine($"Review usage statement by running: {executingAssemblyName} -?");
+
                 return false;
             }
 
