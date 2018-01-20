@@ -1,9 +1,12 @@
+//
+// Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+//
+
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Xml;
 using Ionic.Zip;
 using NUnit.Framework;
 using TechTalk.SpecFlow;

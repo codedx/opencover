@@ -4,8 +4,9 @@
  * Date: 9.1.2016.
  * Time: 17:52
  * 
+ * Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+ *
  */
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using log4net;

@@ -1,3 +1,7 @@
+//
+// Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+//
+
 #include "stdafx.h"
 
 #include <memory>

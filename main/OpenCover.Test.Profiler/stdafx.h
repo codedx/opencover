@@ -2,6 +2,8 @@
 // or project specific include files that are used frequently, but
 // are changed infrequently
 //
+// Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+//
 
 #pragma once
 

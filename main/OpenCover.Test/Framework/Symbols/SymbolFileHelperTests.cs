@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿//
+// Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+//
+
+using System;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Mono.Cecil.Pdb;
 using Moq;
 using NUnit.Framework;

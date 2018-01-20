@@ -3,10 +3,8 @@
 //
 // This source code is released under the MIT License; see the accompanying license file.
 //
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+// Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+//
 using System.Xml.Serialization;
 
 namespace OpenCover.Framework.Model

@@ -1,9 +1,10 @@
-﻿using System;
+﻿//
+// Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+//
+
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
 using OpenCover.Framework.Model;
 
 namespace OpenCover.Test.Framework.Model

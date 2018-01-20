@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿//
+// Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+//
+
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using NUnit.Framework;
 using OpenCover.Framework.Utility;
 

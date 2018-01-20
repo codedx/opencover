@@ -3,6 +3,8 @@
 //
 // This source code is released under the MIT License; see the accompanying license file.
 //
+// Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+//
 using System;
 using System.IO;
 using System.Linq;

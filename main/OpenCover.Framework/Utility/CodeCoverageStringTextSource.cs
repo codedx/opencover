@@ -1,5 +1,8 @@
 ﻿// Copyright (c) https://github.com/ddur
 // This code is distributed under MIT license
+//
+// Modified work Copyright 2017 Secure Decisions, a division of Applied Visions, Inc.
+//
 
 using System;
 using System.Collections.Generic;
