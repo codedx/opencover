@@ -285,8 +285,23 @@ namespace CodePulse.Console
                     return ProgramExitCodes.RunProcessFailed;
                 }
 
-                Logger.Info("Trace started successfully - end program to finish tracing.");
-                process.WaitForExit();
+                Logger.Info("Trace started successfully");
+
+                System.Console.WriteLine("Trace will stop when either program ends or Code Pulse ends the trace.");
+
+                Task.WaitAny(
+                    Task.Run(() => process.WaitForExit()),
+                    Task.Run(() => _persistence.WaitForShutdown()));
+
+                if (!process.HasExited)
+                {
+                    const string programStillRunningMsg = "Trace ended...waiting for program exit";
+
+                    Logger.Info(programStillRunningMsg);
+                    System.Console.WriteLine(programStillRunningMsg);
+
+                    process.WaitForExit();
+                }
 
                 var exitCode = parser.ReturnTargetCode ? process.ExitCode : 0;
                 Logger.Info($"Application trace completed. Reported exited code is {exitCode}.");

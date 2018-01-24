@@ -27,7 +27,11 @@ namespace OpenCover.Framework.Persistance
         private readonly ILog _logger;
         private uint _trackedMethodId;
         private readonly Dictionary<Module, Dictionary<int, KeyValuePair<Class, Method>>> _moduleMethodMap = new Dictionary<Module, Dictionary<int, KeyValuePair<Class, Method>>>();
-        private readonly Dictionary<Guid, HashSet<uint>> _contextSpidMap = new Dictionary<Guid, HashSet<uint>>();
+
+        /// <summary>
+        /// Keeps track of which spids are associated with which context identifiers.
+        /// </summary>
+        protected readonly Dictionary<Guid, HashSet<uint>> ContextSpidMap = new Dictionary<Guid, HashSet<uint>>();
 
         /// <summary>
         /// constructor
@@ -597,31 +601,12 @@ namespace OpenCover.Framework.Persistance
                     var contextId = MakeGuid(contextHigh, contextLow);
                     if (spid == (uint) MSG_IdType.IT_VisitPointContextEnd)
                     {
-                        var hasValue = _contextSpidMap.TryGetValue(contextId, out HashSet<uint> relatedSpids);
-
-                        _logger.Debug($"Ended: {contextId} {relatedSpids?.Count}");
-                        if (relatedSpids?.Count > 0)
-                        {
-                            foreach (var relatedSpid in relatedSpids)
-                            {
-                                if (relatedSpid == (uint) MSG_IdType.IT_VisitPointContextEnd)
-                                {
-                                    _logger.Debug("  Related: ? IT_VisitPointContextEnd");
-                                    continue;
-                                }
-                                var relatedSpidMethod = InstrumentationPoint.GetDeclaringMethod(relatedSpid);
-                                _logger.Debug($"  Related: {relatedSpid} {relatedSpidMethod.FullName}");
-                            }
-                        }
-
-                        if (hasValue)
+                        if (ContextSpidMap.TryGetValue(contextId, out var relatedSpids))
                         {
                             OnContextEnd(contextId, relatedSpids);
 
-                            _contextSpidMap.Remove(contextId);
+                            ContextSpidMap.Remove(contextId);
                         }
-                        
-
                         continue;
                     }
 
@@ -630,15 +615,25 @@ namespace OpenCover.Framework.Persistance
                         _logger.ErrorFormat("Failed to add a visit to {0} with tracking method {1}. Max point count is {2}",
                             spid, _trackedMethodId, InstrumentationPoint.Count);
                     }
-                    var declaringMethod = InstrumentationPoint.GetDeclaringMethod(spid);
-                    _logger.Debug($"VP: {contextId} {spid} {declaringMethod.FullName}");
 
-                    if (!_contextSpidMap.TryGetValue(contextId, out HashSet<uint> spids))
+                    if (!ContextSpidMap.TryGetValue(contextId, out var spids))
                     {
                         spids = new HashSet<uint>();
-                        _contextSpidMap[contextId] = spids;
+                        ContextSpidMap[contextId] = spids;
                     }
                     spids.Add(spid);
+
+                    var fullName = "?";
+                    var declaringMethod = InstrumentationPoint.GetDeclaringMethod(spid);
+                    if (declaringMethod != null)
+                    {
+                        fullName = declaringMethod.FullName;
+                    }
+                    else
+                    {
+                        _logger.ErrorFormat("Unable to find declaring method for SPID {0}.", spid);
+                    }
+                    _logger.Debug($"Saved {contextId} visit for\r\n\t{fullName} (SPID: {spid})");
                 }
                 else
                 {
@@ -646,6 +641,11 @@ namespace OpenCover.Framework.Persistance
                     _trackedMethodId = (spid & (uint)MSG_IdType.IT_MethodEnter) != 0 ? tmId : 0;
                 }
             }
+        }
+
+        /// <inheritdoc />
+        public virtual void AdviseNoVisitData()
+        {
         }
 
         /// <summary>
@@ -702,7 +702,6 @@ namespace OpenCover.Framework.Persistance
         /// <param name="relatedSpids">Collection of SPIDs related to context.</param>
         protected virtual void OnContextEnd(Guid contextId, HashSet<uint> relatedSpids)
         {
-            LogContext(contextId, relatedSpids);
         }
 
         private void TransformSequences() {
@@ -1041,42 +1040,6 @@ namespace OpenCover.Framework.Persistance
                 method.BranchPoints = validBranchPoints.OrderBy(bp => bp.UniqueSequencePoint).ToArray();
 
             }
-        }
-
-        private void LogContext(Guid contextId, HashSet<uint> relatedSpids)
-        {
-            _logger.InfoFormat($"\n\nLogging context {contextId}...");
-
-            foreach (var relatedSpid in relatedSpids)
-            {
-                var startAndEndLineNumber = InstrumentationPoint.GetLineNumbers(relatedSpid);
-                if (startAndEndLineNumber?.Item1 == null || startAndEndLineNumber.Item2 == null)
-                {
-                    _logger.InfoFormat($"\nLogContext => WARN: No line number data for SPID {relatedSpid}");
-                    continue;
-                }
-
-                var declaringMethod = InstrumentationPoint.GetDeclaringMethod(relatedSpid);
-
-                var methodContainingSpid = GetMethod(declaringMethod.DeclaringClass.DeclaringModule.ModulePath,
-                    declaringMethod.MetadataToken, out var @class);
-                if (methodContainingSpid == null)
-                {
-                    continue;
-                }
-
-                var filePath = "?";
-                var firstFile = @class.Files.FirstOrDefault();
-                if (firstFile != null)
-                {
-                    filePath = firstFile.FullPath;
-                }
-
-                var logMessage = $"Class: {@class.FullName}\nFile: {filePath}\nCallName: {methodContainingSpid.CallName}\nFullName: {methodContainingSpid.FullName}\nStartLine: {startAndEndLineNumber.Item1.Value}\nEndLine: {startAndEndLineNumber.Item2.Value}";
-                _logger.InfoFormat($"\nLogContext => {logMessage}");
-            }
-
-            _logger.InfoFormat($"\nContext {contextId} has ended.\n\n");
         }
     }
 }

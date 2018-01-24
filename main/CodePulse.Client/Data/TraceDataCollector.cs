@@ -74,7 +74,7 @@ namespace CodePulse.Client.Data
         {
             if (_task.Status != TaskStatus.Running)
             {
-                _logger.Warn($"Ignoring method visit for {className}.{methodName} ({methodSignature}) because trace data collector is not running.");
+                _logger.Warn($"The trace data collector is not running, so method visit ignored for {className}.{methodName} ({methodSignature}).");
                 return;
             }
 
@@ -85,6 +85,19 @@ namespace CodePulse.Client.Data
                 methodSignature,
                 startLineNumber,
                 endLineNumber));
+
+            if (!_logger.IsDebugEnabled)
+            {
+                return;
+            }
+
+            var lines = $"Line: {startLineNumber}";
+            if (startLineNumber != endLineNumber)
+            {
+                lines = $"Lines: {startLineNumber}-{endLineNumber}";
+            }
+
+            _logger.Debug($"Added MethodVisitTraceMessage:\r\n\tClass: {className}\r\n\tFile: {sourceFile}\r\n\tMethod: {methodName}\r\n\tSignature: {methodSignature}\r\n\t{lines}");
         }
 
         public void Shutdown()
@@ -151,8 +164,6 @@ namespace CodePulse.Client.Data
             var classId = _classIdentifier.Record(className, sourceFile);
             var methodId = _methodIdentifier.Record(classId, methodName, methodSignature, startLineNumber, endLineNumber);
 
-            _logger.Debug($"MethodEntry: {methodSignature} ({methodId})");
-
             try
             {
                 MethodActivity(methodId, null, (writer, timestamp, nextSequenceId, methodIdentifier, threadId, sourceLineNumber) =>
@@ -161,6 +172,8 @@ namespace CodePulse.Client.Data
                     {
                         throw new InvalidOperationException();
                     }
+
+                    _logger.Debug($"MethodEntry: {methodSignature} ({methodId})");
                     _messageProtocol.WriteMethodEntry(writer, timestamp, nextSequenceId, methodIdentifier, threadId);
                 });
             }

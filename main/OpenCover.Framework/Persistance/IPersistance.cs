@@ -69,6 +69,11 @@ namespace OpenCover.Framework.Persistance
         void SaveVisitData(byte[] data);
 
         /// <summary>
+        /// Called when no visit data is available.
+        /// </summary>
+        void AdviseNoVisitData();
+
+        /// <summary>
         /// Is this method one we wish to track enter/exit for trace by test feature
         /// </summary>
         /// <param name="modulePath"></param>

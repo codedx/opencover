@@ -82,7 +82,7 @@ namespace OpenCover.Framework.Model
         /// <returns>Method where instrumentation point is defined</returns>
         public static Method GetDeclaringMethod(uint spid)
         {
-            return InstrumentPoints[(int) spid].DeclaringMethod;
+            return spid >= InstrumentPoints.Count ? null : InstrumentPoints[(int) spid]?.DeclaringMethod;
         }
 
         /// <summary>

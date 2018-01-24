@@ -1426,16 +1426,12 @@ namespace OpenCover.Test.Framework.Persistance
                 data.AddRange(BitConverter.GetBytes(pointsContext[pointIdIndex + 1]));
             }
 
-            var mockLog = Container.GetMock<ILog>();
-            mockLog.Setup(x => x.InfoFormat(It.IsAny<string>()));
-
             Instance.PersistModule(module);
 
             // act
             Instance.SaveVisitData(data.ToArray());
 
             // assert
-            mockLog.Verify(x => x.InfoFormat($"\nContext {contextIdOne} has ended.\n\n"), Times.Once());
             Assert.AreEqual(2, InstrumentationPoint.GetVisitCount(pt1.UniqueSequencePoint));
             Assert.AreEqual(3, InstrumentationPoint.GetVisitCount(pt2.UniqueSequencePoint));
             Assert.AreEqual(1, pt1.GetContextVisit(contextIdOne).VisitCount);

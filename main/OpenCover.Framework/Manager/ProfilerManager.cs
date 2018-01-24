@@ -184,7 +184,10 @@ namespace OpenCover.Framework.Manager
                 {
                     byte[] data;
                     while (!_messageQueue.TryDequeue(out data))
+                    {
+                        _persistance.AdviseNoVisitData();
                         ThreadHelper.YieldOrSleep(100);
+                    }
 
                     _perfCounters.CurrentMemoryQueueSize = _messageQueue.Count;
                     _perfCounters.IncrementBlocksReceived();

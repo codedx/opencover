@@ -42,11 +42,16 @@ namespace OpenCover.Framework.Persistance
         /// </summary>
         private ITraceAgent _agent;
 
+        private DateTime _sendTimerExpiration;
+
         /// <inheritdoc />
         public CodePulsePersistence(ICommandLine commandLine, ILog logger)
             : base(commandLine, logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            _sendTimerExpiration = commandLine.SendVisitPointsTimerInterval != 0 ? 
+                DateTime.UtcNow.AddMilliseconds(commandLine.SendVisitPointsTimerInterval) : DateTime.MaxValue;
         }
 
         /// <summary>
@@ -108,7 +113,42 @@ namespace OpenCover.Framework.Persistance
         }
 
         /// <inheritdoc />
+        public override void AdviseNoVisitData()
+        {
+            if (CommandLine.SendVisitPointsTimerInterval == 0)
+            {
+                return;
+            }
+
+            var now = DateTime.UtcNow;
+            if (now < _sendTimerExpiration)
+            {
+                return;
+            }
+            _sendTimerExpiration = now.AddMilliseconds(CommandLine.SendVisitPointsTimerInterval);
+
+            var contextIds = ContextSpidMap.Keys.ToArray();
+            foreach (var contextId in contextIds)
+            {
+                if (!ContextSpidMap.TryGetValue(contextId, out HashSet<uint> relatedSpids))
+                {
+                    continue;
+                }
+                AddToTrace(relatedSpids);
+
+                ContextSpidMap.Remove(contextId);
+            }
+        }
+
+        /// <inheritdoc />
         protected override void OnContextEnd(Guid contextId, HashSet<uint> relatedSpids)
+        {
+            _logger.Debug($"Context {contextId} ended with a related spid count of {relatedSpids?.Count}.");
+
+            AddToTrace(relatedSpids);
+        }
+
+        private void AddToTrace(IEnumerable<uint> relatedSpids)
         {
             foreach (var relatedSpid in relatedSpids)
             {
@@ -125,10 +165,17 @@ namespace OpenCover.Framework.Persistance
                 }
 
                 var declaringMethod = InstrumentationPoint.GetDeclaringMethod(relatedSpid);
+                if (declaringMethod == null)
+                {
+                    _logger.Error($"Cannot find declaring method for SPID {relatedSpid}.");
+                    continue;
+                }
+
                 var methodContainingSpid = GetMethod(declaringMethod.DeclaringClass.DeclaringModule.ModulePath,
                     declaringMethod.MetadataToken, out var @class);
                 if (methodContainingSpid == null)
                 {
+                    _logger.Error($"Cannot find method for SPID {relatedSpid} with token {declaringMethod.MetadataToken} in module {declaringMethod.DeclaringClass.DeclaringModule.ModulePath}.");
                     continue;
                 }
 

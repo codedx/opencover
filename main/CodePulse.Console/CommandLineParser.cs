@@ -292,7 +292,7 @@ namespace CodePulse.Console
             builder.AppendLine("[-DiagMode]");
             builder.AppendLine("-?");
             builder.AppendLine("-Version");
-            builder.AppendLine("[-SendVisitPointsTimerInterval: 0 (no timer) | 1-maxint (timer interval in msec)");
+            builder.AppendLine("[-SendVisitPointsTimerInterval: 0 (no timer) | 1-3,600,000 (timer interval in msec)");
             var skips = string.Join("|", Enum.GetNames(typeof(SkippedMethod)).Where(x => x != "Unknown"));
             builder.AppendLine(string.Format("[-HideSkipped:{0}|All,[{0}|All]]", skips));
             builder.AppendLine();
@@ -303,7 +303,7 @@ namespace CodePulse.Console
             builder.AppendLine("    applied.");
             builder.AppendLine("Logging:");
             builder.AppendLine("    Logging is based on log4net logging levels and appenders - defaulting");
-            builder.AppendLine("    to a ColoredConsoleAppender and INFO log level.");
+            builder.AppendLine("    to INFO log level with ColoredConsoleAppender and RollingFileAppender.");
             builder.AppendLine("Notes:");
             builder.AppendLine("    Enclose arguments in quotes \"\" when spaces are required see -targetargs.");
 
@@ -401,8 +401,12 @@ namespace CodePulse.Console
                         break;
                     case "log":
                         var value = GetArgumentValue("log");
-                        LogLevel = (Level)typeof(Level).GetFields(BindingFlags.Static | BindingFlags.Public)
-                            .First(x => string.Compare(x.Name, value, true, CultureInfo.InvariantCulture) == 0).GetValue(typeof(Level));
+                        var fieldValue = typeof(Level).GetFields(BindingFlags.Static | BindingFlags.Public).FirstOrDefault(x => string.Compare(x.Name, value, true, CultureInfo.InvariantCulture) == 0);
+                        if (fieldValue == null)
+                        {
+                            throw new InvalidOperationException($"'{value}' is an invalid value for log parameter.");
+                        }
+                        LogLevel = (Level)fieldValue.GetValue(typeof(Level));
                         break;
                     case "iis":
                         Iis = true;
@@ -411,7 +415,7 @@ namespace CodePulse.Console
                         IisAppPoolIdentity = GetArgumentValue("iisapppoolidentity");
                         break;
                     case "servicecontroltimeout":
-                        var timeoutValue = ExtractValue("servicecontroltimeout", 500, Int32.MaxValue, error => throw new InvalidOperationException($"The service control timeout must be a non-negative integer. {error}."));
+                        var timeoutValue = ExtractValue("servicecontroltimeout", 5, 60, error => throw new InvalidOperationException($"The service control timeout must be a non-negative integer. {error}."));
                         ServiceControlTimeout = TimeSpan.FromSeconds(timeoutValue);
                         break;
                     case "enableperformancecounters":
@@ -433,7 +437,7 @@ namespace CodePulse.Console
                         DiagMode = true;
                         break;
                     case "sendvisitpointstimerinterval":
-                        SendVisitPointsTimerInterval = ExtractValue("sendvisitpointstimerinterval", 0u, uint.MaxValue, error => throw new InvalidOperationException($"The send visit points timer interval must be a non-negative integer. {error}."));
+                        SendVisitPointsTimerInterval = ExtractValue("sendvisitpointstimerinterval", 0u, 60u * 60u * 1000u, error => throw new InvalidOperationException($"The send visit points timer interval must be a non-negative integer. {error}"));
                         break;
                     default:
                         throw new InvalidOperationException($"The argument '-{key}' is not recognised");
@@ -535,14 +539,6 @@ namespace CodePulse.Console
             }
         }
 
-        private void ValidateRange(string argumentName, uint argumentValue, uint minValueInclusive, uint maxValueInclusive)
-        {
-            if (argumentValue < minValueInclusive || argumentValue > maxValueInclusive)
-            {
-                throw new InvalidOperationException($"The argument {argumentName} has an invalid value ({argumentValue}), it must be between {minValueInclusive} and {maxValueInclusive} (inclusive).");
-            }
-        }
-
         private void ValidateArguments()
         {
             if (PrintUsage || PrintVersion)
@@ -561,11 +557,20 @@ namespace CodePulse.Console
                 ValidateRequiredArgument("IISAppPoolIdentity", IisAppPoolIdentity);
                 ValidateMissingArgument("Target", Target);
                 ValidateMissingArgument("TargetArgs", TargetArgs);
+
+                if (SendVisitPointsTimerInterval != 0)
+                {
+                    // When running an IIS web application, Code Pulse update takes place on request end
+                    throw new InvalidOperationException("SendVisitPointsTimerInterval argument is incompatible with -IIS switch.");
+                }
             }
             else
             {
                 ValidateRequiredArgument("Target", Target);
-                ValidateRange("SendVisitPointsTimerInterval", SendVisitPointsTimerInterval, 1, UInt32.MaxValue);
+                if (SendVisitPointsTimerInterval == 0)
+                {
+                    throw new InvalidOperationException("SendVisitPointsTimerInterval command line argument must be specified as a number > 0.");
+                }
             }
 
             if (EnablePerformanceCounters)
