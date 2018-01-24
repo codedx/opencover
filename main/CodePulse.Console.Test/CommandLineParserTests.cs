@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OpenCover.Framework.Utility;
 
 namespace CodePulse.Console.Test
 {
@@ -9,6 +10,8 @@ namespace CodePulse.Console.Test
         [TestMethod]
         public void WhenIisModeAndMissingParametersExceptionOccurs()
         {
+            AssertRunningAsWindowsAdmin();
+
             // arrange
             var parameters = new[]
             {
@@ -20,6 +23,8 @@ namespace CodePulse.Console.Test
         [TestMethod]
         public void WhenIisModeWithTargetDirAndMissingParametersExceptionOccurs()
         {
+            AssertRunningAsWindowsAdmin();
+
             // arrange
             var parameters = new[]
             {
@@ -60,6 +65,8 @@ namespace CodePulse.Console.Test
         [TestMethod]
         public void WhenIisModeAndSendVisitPointsTimerSpecifiedExceptionOccurs()
         {
+            AssertRunningAsWindowsAdmin();
+
             // arrange
             var parameters = new[]
             {
@@ -74,6 +81,8 @@ namespace CodePulse.Console.Test
         [TestMethod]
         public void WhenIisModeSpecifiedCorrectlySuccess()
         {
+            AssertRunningAsWindowsAdmin();
+
             // arrange
             var parameters = new[]
             {
@@ -268,6 +277,14 @@ namespace CodePulse.Console.Test
 
             // assert
             Assert.AreEqual(expectedError, error);
+        }
+
+        private static void AssertRunningAsWindowsAdmin()
+        {
+            if (!IdentityHelper.IsRunningAsWindowsAdmin())
+            {
+                Assert.Inconclusive("Skipping test because administrator privileges are missing.");
+            }
         }
     }
 }
