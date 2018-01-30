@@ -15,6 +15,10 @@
 // HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+// This material is based on research sponsored by the Department of Homeland
+// Security (DHS) Science and Technology Directorate, Cyber Security Division
+// (DHS S&T/CSD) via contract number HHSP233201600058C.
 
 using System;
 using System.Threading.Tasks;
