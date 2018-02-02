@@ -656,7 +656,7 @@ namespace CodePulse.Console
             var impliedProfilerPath = Path.Combine(assemblyDirectory, x64 ? "x64" : "x86", "OpenCover.Profiler.dll");
             if (!System.IO.File.Exists(impliedProfilerPath))
             {
-                throw new InvalidOperationException($"Registration cannot take place because the profiler library ({impliedProfilerPath}) does not exist.");
+                throw new InvalidOperationException($"Registration cannot take place because the profiler library ({impliedProfilerPath}) does not exist. {(x64 ? "Is the 64-bit profiler library installed?" : string.Empty)}");
             }
 
             return impliedProfilerPath;
