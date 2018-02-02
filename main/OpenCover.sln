@@ -125,6 +125,8 @@ Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "CodePulse.Installer", "Code
 EndProject
 Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "CodePulse.Installer.x64", "CodePulse.Installer.x64\CodePulse.Installer.x64.wixproj", "{F18922E1-BEF6-44EB-8D76-B06A0669DCB9}"
 EndProject
+Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "CodePulse.Bundle", "CodePulse.Bundle\CodePulse.Bundle.wixproj", "{D390F301-798F-4B2D-A740-061AB6941645}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -392,6 +394,12 @@ Global
 		{F18922E1-BEF6-44EB-8D76-B06A0669DCB9}.Release|Any CPU.ActiveCfg = Release|x64
 		{F18922E1-BEF6-44EB-8D76-B06A0669DCB9}.Release|x64.ActiveCfg = Release|x64
 		{F18922E1-BEF6-44EB-8D76-B06A0669DCB9}.Release|x86.ActiveCfg = Release|x64
+		{D390F301-798F-4B2D-A740-061AB6941645}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{D390F301-798F-4B2D-A740-061AB6941645}.Debug|x64.ActiveCfg = Debug|x86
+		{D390F301-798F-4B2D-A740-061AB6941645}.Debug|x86.ActiveCfg = Debug|x86
+		{D390F301-798F-4B2D-A740-061AB6941645}.Release|Any CPU.ActiveCfg = Release|x86
+		{D390F301-798F-4B2D-A740-061AB6941645}.Release|x64.ActiveCfg = Release|x86
+		{D390F301-798F-4B2D-A740-061AB6941645}.Release|x86.ActiveCfg = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -422,9 +430,10 @@ Global
 		{F6549F12-7177-4B77-B97F-7EB324BD597C} = {D7453212-4AF9-426E-8D91-D5BF04B65B00}
 		{65367A51-7B99-4CDF-BE38-BC9515C597B6} = {D7453212-4AF9-426E-8D91-D5BF04B65B00}
 		{F18922E1-BEF6-44EB-8D76-B06A0669DCB9} = {D7453212-4AF9-426E-8D91-D5BF04B65B00}
+		{D390F301-798F-4B2D-A740-061AB6941645} = {D7453212-4AF9-426E-8D91-D5BF04B65B00}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		EnterpriseLibraryConfigurationToolBinariesPath = packages\Unity.2.1.505.2\lib\NET35
 		SolutionGuid = {07668570-E91E-4CCA-A9BF-EC3A83011035}
+		EnterpriseLibraryConfigurationToolBinariesPath = packages\Unity.2.1.505.2\lib\NET35
 	EndGlobalSection
 EndGlobal
