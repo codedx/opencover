@@ -26,6 +26,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using log4net.Core;
+using Microsoft.Win32;
 using OpenCover.Framework;
 using OpenCover.Framework.Model;
 using OpenCover.Framework.Utility;
@@ -221,6 +222,21 @@ namespace CodePulse.Console
         /// Enable SendVisitPoints timer interval in msec (0 means do not run timer)
         /// </summary>
         public uint SendVisitPointsTimerInterval { get; private set; }
+
+        /// <summary>
+        /// Path for the profiler that will be used to profiler 32-bit applications.
+        /// </summary>
+        public string Profiler32Path { get; private set; }
+
+        /// <summary>
+        /// Path for the profiler that will be used to profiler 64-bit applications.
+        /// </summary>
+        public string Profiler64Path { get; private set; }
+
+        /// <summary>
+        /// Owner of application under test.
+        /// </summary>
+        public string ExpectedOwnerOfApplicationUnderTest { get; private set; }
 
         /// <summary>
         /// Constructs the parser
@@ -550,6 +566,8 @@ namespace CodePulse.Console
                 return;
             }
 
+            ValidateProfilerRegistration();
+
             if (Iis)
             {
                 ValidateIsElevated("You must run elevated to profile an IIS application.");
@@ -577,6 +595,71 @@ namespace CodePulse.Console
             {
                 ValidateIsElevated("You must run elevated to enable performance counters.");
             }
+        }
+
+        private void ValidateProfilerRegistration()
+        {
+            ExpectedOwnerOfApplicationUnderTest = Iis ? IisAppPoolIdentity : Environment.UserName;
+
+            if (!Register)
+            {
+                Profiler32Path = ValidateCurrentProfilerRegistration(false);
+                Profiler64Path = ValidateCurrentProfilerRegistration(true);
+
+                return;
+            }
+
+            if (Registration == Registration.Normal)
+            {
+                ValidateIsElevated("You must run elevated to register the .NET profiler component.");
+            }
+
+            Profiler32Path = ValidateProfilerPath(false);
+            Profiler64Path = ValidateProfilerPath(true);
+        }
+
+        private string ValidateCurrentProfilerRegistration(bool x64)
+        {
+            if (x64 && !Environment.Is64BitOperatingSystem)
+            {
+                return null;
+            }
+
+            using (var rootKey = RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, x64 ? RegistryView.Registry64 : RegistryView.Registry32))
+            using (var key = rootKey.OpenSubKey(@"CLSID\{1542C21D-80C3-45E6-A56C-A9C1E4BEB7B8}\InprocServer32"))
+            {
+                if (key == null)
+                {
+                    throw new InvalidOperationException($"Profiler for {(x64 ? "x64" : "x86")} is not registered. Register the profiler with regsvr32.exe or use the -Register command line argument.");
+                }
+
+                var path = key.GetValue(null).ToString();
+                if (!System.IO.File.Exists(path))
+                {
+                    throw new InvalidOperationException($"Profiler is registered, but registration points to a path ({path}) that does not exist.");
+                }
+
+                return path;
+            }
+        }
+
+        private static string ValidateProfilerPath(bool x64)
+        {
+            if (x64 && !Environment.Is64BitOperatingSystem)
+            {
+                return null;
+            }
+
+            var assemblyDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location) ??
+                                        throw new InvalidOperationException("Unable to determine the location from which the program is running.");
+
+            var impliedProfilerPath = Path.Combine(assemblyDirectory, x64 ? "x64" : "x86", "OpenCover.Profiler.dll");
+            if (!System.IO.File.Exists(impliedProfilerPath))
+            {
+                throw new InvalidOperationException($"Registration cannot take place because the profiler library ({impliedProfilerPath}) does not exist.");
+            }
+
+            return impliedProfilerPath;
         }
     }
 }

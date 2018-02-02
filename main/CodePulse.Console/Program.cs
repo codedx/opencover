@@ -27,6 +27,8 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.ServiceProcess;
 using System.Threading.Tasks;
 using OpenCover.Framework;
@@ -54,6 +56,7 @@ namespace CodePulse.Console
         public const int CannotRestoreServiceStatus = 9;
         public const int IisWebApplicationProfilingAlreadyRunning = 10;
         public const int CannotStopServiceAfterTrace = 11;
+        public const int ProfilerNoReadPermission = 12;
     }
 
     internal class Program
@@ -74,7 +77,7 @@ namespace CodePulse.Console
         private static CodePulsePersistence _persistence;
 
         /// <summary>
-        /// This is the Code Pulse .NET Console application.
+        /// This is the Code Pulse .NET Tracer application.
         /// </summary>
         /// <param name="args">Application arguments - see usage statement</param>
         /// <returns>Return code adjusted by optional offset.</returns>
@@ -92,48 +95,157 @@ namespace CodePulse.Console
 
                 LogManager.GetRepository().Threshold = parser.LogLevel;
 
-                Logger.Info("Starting...");
-
-                var filter = BuildFilter(parser);
-                var perfCounter = CreatePerformanceCounter(parser);
-
-                using (var container = new Bootstrapper(Logger))
+                if (!DoesUserHaveReadAccess(parser.Profiler32Path, parser.ExpectedOwnerOfApplicationUnderTest, out var new32BitAccessRule))
                 {
-                    Logger.Info("Connecting to Code Pulse...");
+                    LogMandatoryFatal($"The application cannot start because expected owner of the application under test ({parser.ExpectedOwnerOfApplicationUnderTest}) does not have read permissions for the 32-bit profiler library ({parser.Profiler32Path}).");
+                    return MakeExitCode(ProgramExitCodes.ProfilerNoReadPermission);
+                }
 
-                    // Write to stdout so that user sees message regardless of log level.
-                    System.Console.WriteLine("Open Code Pulse, select a project, wait for the connection, and start a trace.");
-
-                    _persistence = new CodePulsePersistence(parser, Logger);
-                    container.Initialise(filter, parser, _persistence, perfCounter);
-                    if (!_persistence.Initialize(new StaticAgentConfiguration(parser.CodePulsePort, parser.CodePulseHost, parser.CodePulseConnectTimeout, Logger)))
+                try
+                {
+                    FileSystemAccessRule new64BitAccessRule = null;
+                    if (Environment.Is64BitOperatingSystem && !DoesUserHaveReadAccess(parser.Profiler64Path, parser.ExpectedOwnerOfApplicationUnderTest, out new64BitAccessRule))
                     {
-                        Logger.Fatal("Failed to initialize Code Pulse connection. Is it running?");
-                        return MakeExitCode(ProgramExitCodes.CannotInitializeCodePulseConnection);
+                        LogMandatoryFatal($"The application cannot start because expected owner of the application under test ({parser.ExpectedOwnerOfApplicationUnderTest}) does not have read permissions for the 64-bit profiler library ({parser.Profiler64Path}).");
+                        return MakeExitCode(ProgramExitCodes.ProfilerNoReadPermission);
                     }
 
-                    var returnCode = RunWithContainer(parser, container, _persistence);
+                    try
+                    {
+                        Logger.Debug($"32-bit Profiler Path: {parser.Profiler32Path}");
+                        if (Environment.Is64BitOperatingSystem)
+                        {
+                            Logger.Debug($"64-bit Profiler Path: {parser.Profiler64Path}");
+                        }
+                        Logger.Debug($"Expected owner of application under test: {parser.ExpectedOwnerOfApplicationUnderTest}");
 
-                    perfCounter.ResetCounters();
+                        Logger.Info("Starting...");
 
-                    return returnCode;
+                        var filter = BuildFilter(parser);
+                        var perfCounter = CreatePerformanceCounter(parser);
+
+                        using (var container = new Bootstrapper(Logger))
+                        {
+                            Logger.Info("Connecting to Code Pulse...");
+                            LogMandatoryInfo("Open Code Pulse, select a project, wait for the connection, and start a trace.");
+
+                            _persistence = new CodePulsePersistence(parser, Logger);
+                            container.Initialise(filter, parser, _persistence, perfCounter);
+                            if (!_persistence.Initialize(new StaticAgentConfiguration(parser.CodePulsePort, parser.CodePulseHost, parser.CodePulseConnectTimeout, Logger)))
+                            {
+                                LogMandatoryFatal("Failed to initialize Code Pulse connection. Is Code Pulse running?");
+                                return MakeExitCode(ProgramExitCodes.CannotInitializeCodePulseConnection);
+                            }
+
+                            var returnCode = RunWithContainer(parser, container, _persistence);
+
+                            perfCounter.ResetCounters();
+
+                            return returnCode;
+                        }
+                    }
+                    finally
+                    {
+                        RemoveFileAccessRule(parser.Profiler64Path, new64BitAccessRule);
+                    }
+                }
+                finally
+                {
+                    RemoveFileAccessRule(parser.Profiler32Path, new32BitAccessRule);
                 }
             }
             catch (ExitApplicationWithoutReportingException)
             {
-                Logger.Fatal(GitHubIssuesStatement);
-                Logger.Fatal(GitHubIssuesListUrl);
+                LogMandatoryFatal(GitHubIssuesStatement);
+                LogMandatoryFatal(GitHubIssuesListUrl);
                 return MakeExitCode(ProgramExitCodes.ApplicationExitDueToError);
             }
             catch (Exception ex)
             {
-                Logger.Fatal("At: Program.Main");
-                Logger.Fatal($"An {ex.GetType()} occured: {ex.Message}.");
-                Logger.Fatal($"stack: {ex.StackTrace}");
-                Logger.Fatal(GitHubIssuesStatement);
-                Logger.Fatal(GitHubIssuesListUrl);
+                LogMandatoryFatal("At: Program.Main");
+                LogMandatoryFatal($"An {ex.GetType()} occured: {ex.Message}.");
+                LogMandatoryFatal($"stack: {ex.StackTrace}");
+                LogMandatoryFatal(GitHubIssuesStatement);
+                LogMandatoryFatal(GitHubIssuesListUrl);
                 return MakeExitCode(ProgramExitCodes.ApplicationExitDueToUnexpectedException);
             }
+        }
+
+        private static bool DoesUserHaveReadAccess(string path, string username, out FileSystemAccessRule newAccessRule)
+        {
+            newAccessRule = null;
+
+            try
+            {
+                // Note: EffectiveAccess code can return a false negative result - it is possible that HasReadAccess 
+                // may incorrectly return false. Similar behavior was witnessed when using the Windows 10 Effective
+                // Permission screen to check read access for an ApplicationPoolIdentity with read access via a
+                // local Windows group.
+
+                var effectiveAccess = new EffectiveAccess.EffectiveAccess(path, username);
+                if (effectiveAccess.HasReadAccess)
+                {
+                    return true;
+                }
+
+                Logger.Info($"Attempting to add access rule because expected owner of application under test ({username}) may not have read permissions to profiler library ({path})...");
+
+                FileSecurity accessControl;
+                try
+                {
+                    newAccessRule = new FileSystemAccessRule(username, FileSystemRights.Read | FileSystemRights.Synchronize, InheritanceFlags.None, PropagationFlags.None, AccessControlType.Allow);
+
+                    accessControl = File.GetAccessControl(path);
+                    accessControl.AddAccessRule(newAccessRule);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"Unable to obtain DACL for granting read permission to profiler library ({path}) to expected owner of application under test ({username}): {e.Message}");
+                    return false;
+                }
+
+                try
+                {
+                    File.SetAccessControl(path, accessControl);
+
+                    // Deny rules override Allow rules, so make sure updated access control list permits read access
+                    var effectiveAccessAfterDacl = new EffectiveAccess.EffectiveAccess(path, username);
+                    if (effectiveAccessAfterDacl.HasReadAccess)
+                    {
+                        return true;
+                    }
+
+                    RemoveFileAccessRule(path, newAccessRule);
+                    newAccessRule = null;
+                    return false;
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"Unable to apply DACL for profiler library ({path}) to grant read permission to expected owner of application under test ({username}): {e.Message}");
+                }
+            }
+            catch (IdentityNotMappedException e)
+            {
+                Logger.Error($"Unable to find expected owner of application under test. The user \"{username}\" may not exist: {e.Message}");
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"Unable to determine whether username {username} has access to path {path}: {e.Message}");
+            }
+
+            return false;
+        }
+
+        private static void RemoveFileAccessRule(string path, FileSystemAccessRule rule)
+        {
+            if (rule == null)
+            {
+                return;
+            }
+
+            var accessControl = File.GetAccessControl(path);
+            accessControl.RemoveAccessRule(rule);
+            File.SetAccessControl(path, accessControl);
         }
 
         private static int RunWithContainer(CommandLineParser parser, Bootstrapper container, IPersistance persistance)
@@ -185,7 +297,7 @@ namespace CodePulse.Console
             var mutex = new System.Threading.Mutex(true, iisServiceApplicationProfilingKey, out var result);
             if (!result)
             {
-                Logger.Fatal("Another instance of this application is already profiling an IIS web application.");
+                LogMandatoryFatal("Another instance of this application is already profiling an IIS web application.");
                 return MakeExitCode(ProgramExitCodes.IisWebApplicationProfilingAlreadyRunning);
             }
             GC.KeepAlive(mutex);
@@ -205,7 +317,7 @@ namespace CodePulse.Console
                     {
                         continue;
                     }
-                    Logger.Fatal($"Service '{serviceToStopBeforeTrace.ServiceDisplayName}' failed to stop.");
+                    LogMandatoryFatal($"Service '{serviceToStopBeforeTrace.ServiceDisplayName}' failed to stop.");
                     return MakeExitCode(ProgramExitCodes.CannotStopServiceBeforeTrace);
                 }
 
@@ -222,13 +334,12 @@ namespace CodePulse.Console
                 }
                 catch (InvalidOperationException fault)
                 {
-                    Logger.Fatal($"Service launch failed with '{fault}'");
+                    LogMandatoryFatal($"Service launch failed with '{fault}'");
                     return MakeExitCode(ProgramExitCodes.ServiceFailedToStart);
                 }
 
                 Logger.Info("Trace started successfully");
-
-                System.Console.WriteLine($"Trace will stop when either '{WorldWideWebPublishingServiceDisplayName}' stops or Code Pulse ends the trace.");
+                LogMandatoryInfo($"Trace will stop when either '{WorldWideWebPublishingServiceDisplayName}' stops or Code Pulse ends the trace.");
 
                 var service = w3SvcService;
                 Task.WaitAny(
@@ -242,13 +353,13 @@ namespace CodePulse.Console
                     {
                         continue;
                     }
-                    Logger.Fatal($"Service '{serviceToStopAfterTrace.ServiceDisplayName}' failed to stop after trace ended.");
+                    LogMandatoryFatal($"Service '{serviceToStopAfterTrace.ServiceDisplayName}' failed to stop after trace ended.");
                     return MakeExitCode(ProgramExitCodes.CannotStopServiceAfterTrace);
                 }
 
                 if (w3SvcService.InitiallyStarted && !w3SvcService.StartService(parser.ServiceControlTimeout))
                 {
-                    Logger.Fatal($"Unable to restart service named  '{WorldWideWebPublishingServiceDisplayName}'.");
+                    LogMandatoryFatal($"Unable to restart service named  '{WorldWideWebPublishingServiceDisplayName}'.");
                     return MakeExitCode(ProgramExitCodes.CannotRestoreServiceStatus);
                 }
 
@@ -281,13 +392,12 @@ namespace CodePulse.Console
                 var process = Process.Start(startInfo);
                 if (process == null)
                 {
-                    Logger.Fatal("Process unexpectedly did not start");
+                    LogMandatoryFatal("Process unexpectedly did not start");
                     return ProgramExitCodes.RunProcessFailed;
                 }
 
                 Logger.Info("Trace started successfully");
-
-                System.Console.WriteLine("Trace will stop when either program ends or Code Pulse ends the trace.");
+                LogMandatoryInfo("Trace will stop when either program ends or Code Pulse ends the trace.");
 
                 Task.WaitAny(
                     Task.Run(() => process.WaitForExit()),
@@ -295,11 +405,7 @@ namespace CodePulse.Console
 
                 if (!process.HasExited)
                 {
-                    const string programStillRunningMsg = "Trace ended...waiting for program exit";
-
-                    Logger.Info(programStillRunningMsg);
-                    System.Console.WriteLine(programStillRunningMsg);
-
+                    LogMandatoryInfo("Trace ended...waiting for program exit");
                     process.WaitForExit();
                 }
 
@@ -310,7 +416,7 @@ namespace CodePulse.Console
             }
             catch (Exception)
             {
-                Logger.Fatal($"Failed to execute the following command '{startInfo.FileName} {startInfo.Arguments}'.");
+                LogMandatoryFatal($"Failed to execute the following command '{startInfo.FileName} {startInfo.Arguments}'.");
                 return MakeExitCode(ProgramExitCodes.RunProcessFailed);
             }
         }
@@ -334,7 +440,7 @@ namespace CodePulse.Console
             if (!string.IsNullOrWhiteSpace(parser.FilterFile))
             {
                 if (!File.Exists(parser.FilterFile.Trim()))
-                    System.Console.WriteLine("FilterFile '{0}' cannot be found - have you specified your arguments correctly?", parser.FilterFile);
+                    LogMandatoryWarning(string.Format("FilterFile '{0}' cannot be found - have you specified your arguments correctly?", parser.FilterFile));
                 else
                 {
                     var filters = File.ReadAllLines(parser.FilterFile);
@@ -374,16 +480,12 @@ namespace CodePulse.Console
                     var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
                     if (entryAssembly == null)
                     {
-                        var entryAssemblyIsUnavailableMessage = "Entry assembly is unavailable.";
-
-                        Logger.Fatal(entryAssemblyIsUnavailableMessage);
-                        System.Console.Error.WriteLine(entryAssemblyIsUnavailableMessage);
-
+                        LogMandatoryFatal("Entry assembly is unavailable.");
                         return false;
                     }
 
                     var version = entryAssembly.GetName().Version;
-                    System.Console.WriteLine("Code Pulse .NET Console version {0}", version);
+                    System.Console.WriteLine("Code Pulse .NET Tracer version {0}", version);
                     if (args.Length == 1)
                     { 
                         return false;
@@ -394,32 +496,22 @@ namespace CodePulse.Console
                 {
                     var invalidTargetDirectoryMessage = $"TargetDir '{parser.TargetDir}' cannot be found - have you specified your arguments correctly?";
 
-                    Logger.Fatal(invalidTargetDirectoryMessage);
-                    System.Console.Error.WriteLine(invalidTargetDirectoryMessage);
+                    LogMandatoryFatal(invalidTargetDirectoryMessage);
                     return false;
                 }
 
                 if (!parser.Iis && !File.Exists(ResolveTargetPathname(parser)))
                 {
-                    var invalidTargetMessage = $"Target '{parser.Target}' cannot be found - have you specified your arguments correctly?";
-
-                    Logger.Fatal(invalidTargetMessage);
-                    System.Console.Error.WriteLine(invalidTargetMessage);
+                    LogMandatoryFatal($"Target '{parser.Target}' cannot be found - have you specified your arguments correctly?");
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                var invalidArgumentsMessage = $"Incorrect Arguments: {ex.Message}";
-
-                Logger.Fatal(invalidArgumentsMessage);
-
-                System.Console.Error.WriteLine();
-                System.Console.Error.WriteLine(invalidArgumentsMessage);
-                System.Console.Error.WriteLine();
+                LogMandatoryFatal($"Incorrect Arguments: {ex.Message}");
 
                 var executingAssemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
-                System.Console.Error.WriteLine($"Review usage statement by running: {executingAssemblyName} -?");
+                LogMandatoryFatal($"Review usage statement by running: {executingAssemblyName} -?");
 
                 return false;
             }
@@ -432,11 +524,10 @@ namespace CodePulse.Console
             var ex = (Exception)unhandledExceptionEventArgs.ExceptionObject;
             var unhandledExceptionMessage = $"An {ex.GetType()} occured: {ex.Message}";
 
-            Logger.Fatal("At: CurrentDomainOnUnhandledException");
-            Logger.Fatal(unhandledExceptionMessage);
-            Logger.Fatal($"stack: {ex.StackTrace}");
-
-            System.Console.Error.WriteLine(unhandledExceptionMessage);
+            LogMandatoryFatal("At: CurrentDomainOnUnhandledException");
+            LogMandatoryFatal(unhandledExceptionMessage);
+            LogMandatoryFatal($"stack: {ex.StackTrace}");
+            LogMandatoryFatal(unhandledExceptionMessage);
 
             Environment.Exit(MakeExitCode(ProgramExitCodes.ApplicationExitDueToUnhandledException));
         }
@@ -444,6 +535,36 @@ namespace CodePulse.Console
         private static int MakeExitCode(int exitCode)
         {
             return _returnCodeOffset + exitCode;
+        }
+
+        private static void LogMandatoryInfo(string message)
+        {
+            if (Logger.IsInfoEnabled)
+            {
+                Logger.Info(message);
+                return;
+            }
+            System.Console.Out.WriteLine(message);
+        }
+
+        private static void LogMandatoryWarning(string message)
+        {
+            if (Logger.IsWarnEnabled)
+            {
+                Logger.Warn(message);
+                return;
+            }
+            System.Console.Out.WriteLine(message);
+        }
+
+        private static void LogMandatoryFatal(string message)
+        {
+            if (Logger.IsFatalEnabled)
+            {
+                Logger.Fatal(message);
+                return;
+            }
+            System.Console.Error.WriteLine(message);
         }
 
         #region PrintResults
