@@ -26,7 +26,7 @@ namespace OpenCover.Test.Samples
         [InlineData(8)]
         public void Test_Data_Is_Even(int i)
         {
-            Assert.Equal(i % 2, 0);
+            Assert.Equal(0, i % 2);
         }
     }
 }

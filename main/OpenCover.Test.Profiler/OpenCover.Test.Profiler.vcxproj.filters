@@ -39,6 +39,18 @@
     <ClInclude Include="MockProfiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TestProfilerInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MockProfilerInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ComBaseTest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MockProfilerHook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="MockICorProfilerInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -93,6 +105,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\OpenCover.Profiler\Timer.cpp">
+      <Filter>Source Files\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="ProfilerInfoBaseTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ProfilerInfoTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OpenCover.Profiler\ProfilerInfo.cpp">
       <Filter>Source Files\Profiler</Filter>
     </ClCompile>
     <ClCompile Include="..\OpenCover.Profiler\PublicKeyTokenCreator.cpp">

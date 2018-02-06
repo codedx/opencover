@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
 using Moq;
 using NUnit.Framework;
@@ -19,12 +20,12 @@ namespace OpenCover.Test.Framework.Symbols
         public void CanFindAndLoadProviderForPdbFile()
         {
             var commandLine = new Mock<ICommandLine>();
-            var assemblyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Microsoft.Practices.ServiceLocation.dll");
+            var assemblyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Unity.ServiceLocation.dll");
 
             var symbolFile = SymbolFileHelper.FindSymbolFolder(assemblyPath, commandLine.Object);
 
             Assert.NotNull(symbolFile);
-            Assert.IsInstanceOf<PdbReaderProvider>(symbolFile.SymbolReaderProvider);
+            Assert.IsInstanceOf<PortablePdbReaderProvider>(symbolFile.SymbolReaderProvider);
             Assert.IsTrue(symbolFile.SymbolFilename.EndsWith(".pdb", StringComparison.InvariantCultureIgnoreCase));
         }
     }

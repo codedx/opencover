@@ -386,8 +386,11 @@ namespace OpenCover.Framework
                         return false;
                     }
 
-                    return y[2].Equals(1)  // sum
-                        || y[2].Equals(2); // record
+                    // Mask out the class kind from its public/non-public state
+                    // SourceConstructFlags.NonPublicRepresentation = 32
+                    // SourceConstructFlags.KindMask = 31
+                    return (y[2] & 31).Equals(1)  // SourceConstructFlags.SumType = 1
+                        || (y[2] & 31).Equals(2); // SourceConstructFlags.RecordType = 2
                 }).ToList();
 
             var fieldGetter = false;
@@ -400,7 +403,7 @@ namespace OpenCover.Framework
                 if(owner.HasCustomAttributes)
                 {
                     fieldGetter = owner.CustomAttributes.Where(x => x.AttributeType.FullName == "Microsoft.FSharp.Core.CompilationMappingAttribute")
-                        .Any(x => x.GetBlob()[2] == 4); // Field
+                        .Any(x => (x.GetBlob()[2] & 31) == 4); // SourceConstructFlags.Field = 4
                 }
             }
 
